@@ -112,7 +112,7 @@ function estadiasDeLibro(nombresHojas, leerFilas, desdeISO) {
    ===================================================================== */
 var VERSION = '1.0.0';
 var CABANAS = [
-  { id: 0, nombre: 'Cabaña 0', capacidad: 4, precio: 0 },
+  { id: 0, nombre: 'Estrella', capacidad: 4, precio: 0 },
   { id: 1, nombre: 'Luna', capacidad: 3, precio: 70000 },
   { id: 2, nombre: 'Marte', capacidad: 10, precio: 215000 },
   { id: 3, nombre: 'Júpiter', capacidad: 6, precio: 125000 },

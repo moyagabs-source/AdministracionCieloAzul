@@ -6,7 +6,7 @@
 var DRIVE_FILE = '1BjmyM7fHC6nOWI0z3AB0s3kEesXsRpRNT6MRz6Qogx4';
 var WA_PROPIO = '5491138167697';
 var CAB = [
-  {id:0,n:'',cap:'4',max:4,p:0,col:'#55712A',tint:'#E7EFDA',fg:'#FFFFFF'},
+  {id:0,n:'Estrella',cap:'4',max:4,p:0,col:'#55712A',tint:'#E7EFDA',fg:'#FFFFFF'},
   {id:1,n:'Luna',cap:'2–3',max:3,p:70000,col:'#4F5F86',tint:'#E6EAF4',fg:'#FFFFFF'},
   {id:2,n:'Marte',cap:'9–10',max:10,p:215000,col:'#B03F22',tint:'#F9E4DD',fg:'#FFFFFF'},
   {id:3,n:'Júpiter',cap:'6',max:6,p:125000,col:'#9A5B1E',tint:'#F6E8D8',fg:'#FFFFFF'},
@@ -109,7 +109,7 @@ function ilu(c){
     A += '<path d="M60 22 L' + (X - 24) + ' ' + (Y - 16) + ' L' + (X - 18) + ' ' + (Y + 4) + ' Z" fill="' + u('tail') + '"/>';
     A += '<path d="M' + X + ' ' + (Y - 40) + ' l11.8 24 26.4 3.8 -19.1 18.6 4.5 26.3 -23.6 -12.4 -23.6 12.4 4.5 -26.3 -19.1 -18.6 26.4 -3.8z" fill="#FFF3B8" stroke="#E7C866" stroke-width="2" stroke-linejoin="round"/>';
     A += '<path d="M' + X + ' ' + (Y - 30) + ' l8 16 18 2.6" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity=".8"/>';
-    A += '<text x="' + X + '" y="' + (Y + 16) + '" text-anchor="middle" font-family="Familjen Grotesk, Helvetica, Arial, sans-serif" font-weight="700" font-size="34" fill="#2F4615">0</text>';
+    A += '<circle cx="' + X + '" cy="' + (Y + 2) + '" r="9" fill="#FFFFFF" opacity=".55"/><circle cx="' + X + '" cy="' + (Y + 2) + '" r="4" fill="#FFFFFF"/>';
     [[X + 52, Y - 30], [X - 60, Y + 30], [X + 64, Y + 22]].forEach(function(k){ A += '<path d="M' + k[0] + ' ' + (k[1] - 5) + ' L' + (k[0] + 1.2) + ' ' + (k[1] - 1.2) + ' L' + (k[0] + 5) + ' ' + k[1] + ' L' + (k[0] + 1.2) + ' ' + (k[1] + 1.2) + ' L' + k[0] + ' ' + (k[1] + 5) + ' L' + (k[0] - 1.2) + ' ' + (k[1] + 1.2) + ' L' + (k[0] - 5) + ' ' + k[1] + ' L' + (k[0] - 1.2) + ' ' + (k[1] - 1.2) + 'Z" fill="#FFF8D6"/>'; });
   }
   /* cerros: tres capas con luz en las crestas */
@@ -183,7 +183,7 @@ function chipDisp(d, sel, accion){
   return '<span class="dchip no">' + chipCab(c.id) + nom + '<small>' + (d.busy ? 'ocupada' : 'hasta ' + c.max + ' pers.') + '</small></span>';
 }
 function saldo(r){ return r.estado === 'pagada' ? 0 : Math.max((r.total || 0) - (r.sena || 0), 0); }
-function toast(t){ var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function(){ el.hidden = true; }, 3800); }
+function toast(t){ var el = $('toast'); el.innerHTML = ic('check', 18) + '<span></span>'; el.lastChild.textContent = t; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function(){ el.hidden = true; }, 3800); }
 function banner(t, warn){ var b = $('banner'); if (!t) { b.hidden = true; return; } b.textContent = t; b.className = 'banner' + (warn ? ' warn' : ''); b.hidden = false; }
 
 /* ---------- Conexión con Google Sheets (Apps Script) ---------- */
@@ -352,6 +352,45 @@ function initConexion(){
   });
 }
 
+
+/* ---------- Íconos (trazo, 24x24) ---------- */
+var ICONS = {
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  moon: '<path d="M21 13.5A8.5 8.5 0 0 1 10.5 3a7 7 0 1 0 10.5 10.5z"/>',
+  login: '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  wallet: '<path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M16 12h5M3 10h18"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  receipt: '<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/>',
+  sheet: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c3 .2 5.5 2.3 5.5 5.8"/>',
+  tag: '<path d="M20 12l-8 8-9-9V4h7z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.2A8 8 0 1 1 21 12z"/>',
+  send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+  pin: '<path d="M12 22s7-7 7-12a7 7 0 1 0-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>',
+  ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  check: '<path d="M4 12.5l5 5L20 6.5"/>',
+  refresh: '<path d="M21 12a9 9 0 0 1-15.5 6.2M3 12a9 9 0 0 1 15.5-6.2"/><path d="M21 4v5h-5M3 20v-5h5"/>',
+  external: '<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
+  download: '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/>',
+  edit: '<path d="M4 20h4l11-11-4-4L4 16z"/>',
+  chevron: '<path d="M9 6l6 6-6 6"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  wifi: '<path d="M2 9a16 16 0 0 1 20 0M5.5 12.5a11 11 0 0 1 13 0M9 16a5.5 5.5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/>',
+  bed: '<path d="M3 18v-8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8M3 14h18M3 18v2M21 18v2"/><path d="M7 8V6h4v2"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  cash: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>',
+  warning: '<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/>'
+};
+function ic(n, size){ return '<svg class="ic" width="' + (size || 18) + '" height="' + (size || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[n] || '') + '</svg>'; }
+function ponerIconos(){ document.querySelectorAll('[data-ic]').forEach(function(el){ if (el.querySelector('svg.ic')) return; el.insertAdjacentHTML('afterbegin', ic(el.getAttribute('data-ic'), el.getAttribute('data-ic-size') ? +el.getAttribute('data-ic-size') : 18)); }); }
+
 /* ---------- Navegación ---------- */
 function irA(v){
   if (['hoy','calendario','reservas','recibos','excel'].indexOf(v) < 0) v = 'hoy';
@@ -382,10 +421,10 @@ function renderHoy(){
   var pend = fut.filter(function(r){ return r.estado === 'porconfirmar'; });
   var cobrar = fut.reduce(function(a, r){ return a + saldo(r); }, 0);
   $('kpis').innerHTML =
-    kpi(ocup.length + '<small class="muted" style="font-size:16px"> / ' + CAB.length + '</small>', 'Ocupadas esta noche', 'calendario') +
-    kpi(entran.length, 'Entran hoy', 'reservas') + kpi(salen.length, 'Salen hoy', 'reservas') +
-    kpi(pend.length, 'Por confirmar', 'reservas:porconfirmar', pend.length > 0) +
-    kpi('<span class="num" style="font-size:clamp(20px,2.2vw,26px)">' + plata(cobrar) + '</span>', 'Saldo a cobrar', 'reservas:saldo');
+    kpi(ocup.length + '<small> / ' + CAB.length + '</small>', 'Ocupadas esta noche', 'calendario', false, 'bed') +
+    kpi(entran.length, 'Entran hoy', 'reservas', false, 'login') + kpi(salen.length, 'Salen hoy', 'reservas', false, 'logout') +
+    kpi(pend.length, 'Por confirmar', 'reservas:porconfirmar', pend.length > 0, 'clock') +
+    kpi('<span class="num kpi-money">' + plata(cobrar) + '</span>', 'Saldo a cobrar', 'reservas:saldo', false, 'wallet');
   // disponibilidad
   if (!$('c-in').value) { $('c-in').value = t; $('c-out').value = iso(tn + 2); }
   var ci = $('c-in').value, co = $('c-out').value, pers = parseInt($('c-p').value, 10);
@@ -411,8 +450,8 @@ function renderHoy(){
       '<div class="cab-b"><div class="cab-t"><h3 class="cabh">' + chipCab(c.id, esc(c.n || 'Cabaña 0')) + '</h3><span class="cap"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c3 .2 5.5 2.3 5.5 5.8"/></svg>' + c.cap + ' pers.</span></div>' +
       '<div class="now">' + now + '</div>' +
       '<div><div class="strip">' + strip + '</div><div class="strip-l"><span>hoy</span><span>14 días</span></div></div>' +
-      '<div class="tarifa"><span class="muted">' + (precio(c.id) ? 'Tarifa por noche: <b class="num" style="color:var(--ink)">' + plata(precio(c.id)) + '</b>' : 'Tarifa sin cargar') + '</span>' + (S.edit ? '<button type="button" class="btn sm" data-precio="' + c.id + '">Cambiar tarifa</button>' : '') + '</div>' +
-      (S.edit ? '<div class="cab-a"><button class="btn sm pri" type="button" data-newcab="' + c.id + '">Anotar reserva</button></div>' : '') +
+      '<div class="tarifa"><span class="muted">' + ic('cash', 16) + (precio(c.id) ? 'Tarifa por noche: <b class="num">' + plata(precio(c.id)) + '</b>' : '<em>Sin tarifa cargada</em>') + '</span></div>' +
+      (S.edit ? '<div class="cab-a"><button class="btn pri" type="button" data-newcab="' + c.id + '">' + ic('plus', 16) + 'Anotar reserva</button><button type="button" class="btn" data-precio="' + c.id + '" aria-label="' + (precio(c.id) ? 'Cambiar' : 'Cargar') + ' tarifa de ' + esc(cabN(c.id)) + '">' + ic('tag', 16) + (precio(c.id) ? 'Cambiar tarifa' : 'Cargar tarifa') + '</button></div>' : '') +
       '</div></article>';
   }).join('');
   $('cabins').innerHTML = S.loaded ? html : '<div class="empty">Cargando cabañas…</div>';
@@ -424,13 +463,13 @@ function renderHoy(){
     cr.innerHTML = '<b>' + (libres ? libres + (libres === 1 ? ' cabaña libre' : ' cabañas libres') : 'Ninguna cabaña libre') + '</b><span>para ' + pers + (pers === 1 ? ' persona' : ' personas') + ' · ' + nn + (nn === 1 ? ' noche' : ' noches') + ' · ' + largo(ci) + ' → ' + largo(co) + '</span>';
     var ls = dsh.filter(function(d){ return d.libre; }), no = dsh.filter(function(d){ return !d.libre; });
     $('chk-disp').innerHTML = (ls.length ? '<div class="dcards">' + ls.map(function(d){ var c = d.c, pr = precio(c.id);
-      return '<div class="dcard" style="--cc:' + c.col + ';--ct:' + c.tint + '"><div class="dc-top">' + chipCab(c.id) + '<b>' + esc(c.n || 'Cabaña 0') + '</b><span class="pill s-libre">Libre</span></div><div class="dc-mid"><span>Hasta ' + c.max + ' personas</span>' + (pr ? '<span><b class="num">' + plata(pr * nn) + '</b> total · ' + plata(pr) + ' x noche</span>' : '<span>Tarifa sin cargar</span>') + '</div>' + (S.edit ? '<button type="button" class="btn pri sm" data-hoydisp="' + c.id + '">Anotar reserva</button>' : '') + '</div>'; }).join('') + '</div>' : '') +
+      return '<div class="dcard" style="--cc:' + c.col + ';--ct:' + c.tint + '"><div class="dc-top">' + chipCab(c.id) + '<b>' + esc(c.n || 'Cabaña 0') + '</b><span class="pill s-libre">Libre</span></div><div class="dc-mid"><span>Hasta ' + c.max + ' personas</span>' + (pr ? '<span><b class="num">' + plata(pr * nn) + '</b> total · ' + plata(pr) + ' x noche</span>' : '<span>Tarifa sin cargar</span>') + '</div>' + (S.edit ? '<button type="button" class="btn pri sm" data-hoydisp="' + c.id + '">' + ic('plus', 16) + 'Anotar reserva</button>' : '') + '</div>'; }).join('') + '</div>' : '') +
       (no.length ? '<p class="dno"><b>No disponibles:</b> ' + no.map(function(d){ return '<span>' + chipCab(d.c.id) + esc(d.c.n || 'Cabaña 0') + ' <em>' + (d.busy ? 'ocupada' : 'hasta ' + d.c.max + ' pers.') + '</em></span>'; }).join('') + '</p>' : '');
   }
   var nx = act.filter(function(r){ return dn(r.from) >= tn; }).sort(function(a,b){ return a.from < b.from ? -1 : a.from > b.from ? 1 : a.cabin - b.cabin; }).slice(0, 6);
-  $('proximas').innerHTML = !S.loaded ? '<div class="empty">Cargando…</div>' : nx.length ? nx.map(fila).join('') : '<div class="empty">No hay llegadas próximas. Tocá “Nueva” para anotar una reserva.</div>';
+  $('proximas').innerHTML = !S.loaded ? '<div class="empty">Cargando…</div>' : nx.length ? nx.map(fila).join('') : '<div class="empty">' + ic('calendar', 28) + '<span>No hay llegadas próximas. Tocá “Nueva” para anotar una reserva.</span></div>';
 }
-function kpi(v, l, go, alert){ return '<button type="button" class="kpi' + (alert ? ' alert' : '') + '" data-go="' + go + '"><b>' + v + '</b><span>' + l + '</span></button>'; }
+function kpi(v, l, go, alert, icono){ return '<button type="button" class="kpi' + (alert ? ' alert' : '') + (icono === 'wallet' ? ' wide' : '') + '" data-go="' + go + '"><i class="kpi-ic">' + ic(icono || 'home', 20) + '</i><span class="kpi-t"><b>' + v + '</b><span>' + l + '</span></span></button>'; }
 
 function fila(r){
   var p = r.from.split('-');
@@ -440,7 +479,7 @@ function fila(r){
     '<span class="who"><strong>' + esc(r.huesped) + '</strong><span class="cabl">' + chipCab(r.cabin) + esc(cabN(r.cabin)) + ' · ' + noches(r) + ' noche' + (noches(r) === 1 ? '' : 's') + ' · sale ' + corto(r.to) + (r.personas ? ' · ' + r.personas + ' pers.' : '') + '</span>' +
     (r.nota ? '<span>' + esc(r.nota) + '</span>' : '') + '</span>' +
     '<span class="rt"><span class="pill s-' + r.estado + '">' + ST[r.estado] + '</span><span class="num">' + (r.estado === 'cancelada' ? '' : saldo(r) ? 'Saldo ' + plata(saldo(r)) : r.total ? 'Pagado' : '') + '</span>' + flag + '</span>' +
-    '</button>';
+    '<span class="chev">' + ic('chevron', 20) + '</span></button>';
 }
 
 function renderCal(){
@@ -517,7 +556,7 @@ function renderLista(){
   $('chips').innerHTML = FILTROS.map(function(f){ var n = S.res.filter(tests[f[0]]).length; return '<button type="button" class="chip" data-f="' + f[0] + '" aria-pressed="' + (S.filtro === f[0]) + '">' + f[1] + ' · ' + n + '</button>'; }).join('');
   var l = S.res.filter(tests[S.filtro]).filter(function(r){ return !q || (r.huesped + ' ' + (r.tel || '') + ' ' + (r.nota || '')).toLowerCase().indexOf(q) >= 0; });
   l.sort(S.filtro === 'todas' ? function(a,b){ return a.from > b.from ? -1 : 1; } : function(a,b){ return a.from < b.from ? -1 : a.from > b.from ? 1 : a.cabin - b.cabin; });
-  $('lista').innerHTML = !S.loaded ? '<div class="empty">Cargando reservas…</div>' : l.length ? l.map(fila).join('') : '<div class="empty">No hay reservas en este filtro.</div>';
+  $('lista').innerHTML = !S.loaded ? '<div class="empty">Cargando reservas…</div>' : l.length ? l.map(fila).join('') : '<div class="empty">' + ic('search', 28) + '<span>No hay reservas en este filtro.</span></div>';
 }
 
 function renderExcel(){
@@ -703,7 +742,7 @@ function wCerrar(){ var dl = $('dlgw'); if (dl.close) dl.close(); else dl.remove
 function wIr(p){
   W.paso = p;
   for (var i = 1; i <= 5; i++) $('w-p' + i).hidden = i !== p;
-  $('w-tit').textContent = p === 5 ? 'Revisá y guardá' : W_TIT[p];
+  $('w-tit').innerHTML = ic(['', 'calendar', 'home', 'users', 'cash', 'check'][p], 22) + ' ' + esc(p === 5 ? 'Revisá y guardá' : W_TIT[p]);
   $('w-prog').textContent = p === 5 ? 'Último paso' : 'Paso ' + p + ' de 4';
   $('w-dots').innerHTML = [1, 2, 3, 4].map(function(i){ return '<i class="' + (i < p ? 'ok' : i === p ? 'cur' : '') + '"></i>'; }).join('');
   $('w-back').hidden = p === 1;
@@ -827,12 +866,21 @@ document.addEventListener('click', function(e){
   if (t.hasAttribute('data-go')) { var g = t.getAttribute('data-go').split(':'); if (g[1]) S.filtro = g[1]; location.hash = g[0]; if (location.hash.slice(1) === g[0]) irA(g[0]); }
 });
 ['c-in','c-out','c-p'].forEach(function(id){ $(id).addEventListener('input', renderHoy); });
+var quickPrev = null;
+function quickMarcar(q){ document.querySelectorAll('[data-quick]').forEach(function(x){ x.setAttribute('aria-pressed', String(x.getAttribute('data-quick') === q)); }); }
 document.querySelectorAll('[data-quick]').forEach(function(b){ b.addEventListener('click', function(){
   var t = dn(hoy()), q = b.getAttribute('data-quick');
+  if (b.getAttribute('aria-pressed') === 'true') {
+    // segundo clic: se destilda y vuelven las fechas anteriores
+    if (quickPrev) { $('c-in').value = quickPrev.in; $('c-out').value = quickPrev.out; }
+    quickPrev = null; quickMarcar(null); renderHoy(); return;
+  }
+  if (!quickPrev) quickPrev = { in: $('c-in').value, out: $('c-out').value };
   if (q === 'finde') { var wd = new Date(t * 86400000).getUTCDay(), hastaViernes = (5 - wd + 7) % 7; var v = t + hastaViernes; $('c-in').value = iso(v); $('c-out').value = iso(v + 2); }
-  else { var a = $('c-in').value ? dn($('c-in').value) : t; $('c-in').value = iso(a); $('c-out').value = iso(a + 7); }
-  renderHoy();
+  else { var a = quickPrev.in ? dn(quickPrev.in) : t; $('c-in').value = iso(a); $('c-out').value = iso(a + 7); }
+  quickMarcar(q); renderHoy();
 }); });
+['c-in','c-out'].forEach(function(id){ $(id).addEventListener('input', function(){ quickPrev = null; quickMarcar(null); }); });
 $('chk').addEventListener('submit', function(e){ e.preventDefault(); });
 document.querySelectorAll('input[type=date]').forEach(function(inp){ inp.addEventListener('click', function(){ try { if (inp.showPicker && !inp.disabled) inp.showPicker(); } catch (e) {} }); });
 $('q').addEventListener('input', function(){ S.q = this.value; renderLista(); });
@@ -1069,6 +1117,7 @@ opcionesCab();
 initRecibos();
 initConexion();
 initAsistente();
+ponerIconos();
 irA(location.hash.slice(1) || 'hoy');
 if (claveSesion()) { document.body.classList.remove('bloqueado'); cargar(); } else bloquear_pantalla('');
 setInterval(function(){ if (document.visibilityState === 'visible' && !$('dlg').open && !S.ocupado && claveSesion()) cargar(true); }, 60000);
