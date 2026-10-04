@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="robots" content="noindex, nofollow">
+<title>Reservas Cielo Azul</title>
+<link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#hoy">
+      <img src="assets/images/logo.webp" alt="Cabañas Cielo Azul" width="165" height="52">
+      <small>RESERVAS</small>
+    </a>
+    <nav class="topnav" aria-label="Secciones">
+      <a href="#hoy" data-v="hoy">Hoy</a>
+      <a href="#calendario" data-v="calendario">Calendario</a>
+      <a href="#reservas" data-v="reservas">Reservas</a>
+      <a href="#recibos" data-v="recibos">Recibos</a>
+      <a href="#excel" data-v="excel">Excel</a>
+    </nav>
+    <button class="btn-new" type="button" data-new>+ Nueva reserva</button>
+  </div>
+</header>
+
+<div id="sync" class="sync" role="status" aria-live="polite" hidden><span id="sync-t"></span><button type="button" class="btn sm" id="sync-r" hidden>Reintentar</button></div>
+
+<main id="main">
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- HOY -->
+  <section class="view" id="v-hoy" aria-labelledby="t-hoy">
+    <div class="head">
+      <div><p class="eyebrow" id="hoy-fecha">Hoy</p><h1 id="t-hoy">Tus cabañas</h1></div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="panel">
+      <h2>¿Hay lugar?</h2>
+      <form class="chk" id="chk">
+        <div class="field"><label for="c-in">Llegada</label><input id="c-in" type="date"></div>
+        <div class="field"><label for="c-out">Salida</label><input id="c-out" type="date"></div>
+        <div class="field"><label for="c-p">Personas</label>
+          <select id="c-p"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
+        <div class="field"><span class="check ok" id="chk-res" role="status">…</span></div>
+        <div class="field full"><div id="chk-disp" class="disp"></div></div>
+      </form>
+    </div>
+    <div class="cabins" id="cabins"><div class="empty">Cargando cabañas…</div></div>
+    <div class="panel">
+      <h2>Próximas llegadas</h2>
+      <div class="list" id="proximas"></div>
+    </div>
+  </section>
+
+  <!-- CALENDARIO -->
+  <section class="view" id="v-calendario" hidden aria-labelledby="t-cal">
+    <div class="head">
+      <div><p class="eyebrow">Ocupación por mes</p><h1 id="t-cal">Calendario</h1></div>
+      <div class="calnav">
+        <button class="btn" type="button" id="m-prev" aria-label="Mes anterior">‹</button>
+        <h2 id="m-lab" aria-live="polite">—</h2>
+        <button class="btn" type="button" id="m-next" aria-label="Mes siguiente">›</button>
+        <button class="btn sm" type="button" id="m-hoy">Hoy</button>
+      </div>
+    </div>
+    <div class="calsum" id="cal-sum"></div>
+    <div class="legend" id="legend"></div>
+    <div class="calwrap" id="calwrap"><div class="cal" id="cal"></div></div>
+    <p class="muted" style="margin:0">Cada barra es una estadía: empieza la noche de llegada y termina la noche antes de la salida. Tocá una barra para ver o editar la reserva, o un casillero libre para anotar una nueva.</p>
+  </section>
+
+  <!-- RESERVAS -->
+  <section class="view" id="v-reservas" hidden aria-labelledby="t-res">
+    <div class="head">
+      <div><p class="eyebrow">Todas tus reservas</p><h1 id="t-res">Reservas</h1></div>
+    </div>
+    <div class="toolbar">
+      <label for="q" class="muted" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Buscar huésped</label>
+      <input id="q" class="search" type="search" placeholder="Buscar por huésped, teléfono o nota">
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Filtrar reservas"></div>
+    <div class="list" id="lista"></div>
+  </section>
+
+  <!-- RECIBOS -->
+  <section class="view" id="v-recibos" hidden aria-labelledby="t-rc">
+    <div class="head"><div><p class="eyebrow">Para enviar al cliente</p><h1 id="t-rc">Recibos y bienvenida</h1></div></div>
+    <div class="panel rc-pick">
+      <div class="field" style="flex:1 1 200px"><label for="rc-q">Buscar cliente</label><input id="rc-q" type="search" placeholder="Nombre o cabaña"></div>
+      <div class="field" style="flex:3 1 340px"><label for="rc-res">Reserva</label><select id="rc-res"></select></div>
+    </div>
+    <div class="tabs" role="group" aria-label="Qué querés generar">
+      <button type="button" data-rt="recibo">Recibo de pago</button>
+      <button type="button" data-rt="bien">Mensaje de llegada</button>
+    </div>
+    <div id="rc-vacio" class="empty">Elegí una reserva para generar el recibo o el mensaje de llegada.</div>
+    <div id="rc-zona" class="rc-grid">
+      <div class="panel" style="display:flex;flex-direction:column;gap:16px;min-width:0">
+        <div id="rc-info" class="rc-info"></div>
+        <div id="rc-form-recibo" style="display:flex;flex-direction:column;gap:14px">
+          <div class="form">
+            <div class="field"><label for="rc-conc">Concepto</label><select id="rc-conc"><option>Seña</option><option>Saldo</option><option>Pago total</option><option>Otro pago</option></select></div>
+            <div class="field"><label for="rc-monto">Monto recibido ($)</label><input id="rc-monto" type="number" min="0" step="1000" inputmode="numeric"></div>
+            <div class="field"><label for="rc-medio">Medio de pago</label><select id="rc-medio"><option>Transferencia</option><option>Efectivo</option><option>Mercado Pago</option><option>Tarjeta</option><option>Otro</option></select></div>
+            <div class="field"><label for="rc-fecha">Fecha del pago</label><input id="rc-fecha" type="date"></div>
+            <div class="field"><label for="rc-de">Recibimos de</label><input id="rc-de"></div>
+            <div class="field"><label>Saldo que queda</label><output id="rc-saldo" class="num" style="min-height:46px;display:flex;align-items:center;font-weight:700;font-size:18px">$0</output></div>
+            <div class="field full"><label for="rc-nota">Nota (opcional)</label><input id="rc-nota" placeholder="Ej.: incluye cama adicional"></div>
+          </div>
+          <div class="acts"><button type="button" class="btn pri" id="rc-anotar">Registrar pago y descargar recibo</button><button type="button" class="btn" id="rc-dl">Recibo de un pago ya registrado</button><button type="button" class="btn" id="rc-txt">Copiar texto</button></div>
+          <div><p class="eyebrow">Recibos emitidos</p><ul class="hist" id="rc-hist"></ul></div>
+        </div>
+        <div id="rc-form-bien" style="display:flex;flex-direction:column;gap:14px" hidden>
+          <div class="form">
+            <div class="field"><label for="bv-red">Nombre de la red WiFi (opcional)</label><input id="bv-red" placeholder="Ej.: CieloAzul"></div>
+            <div class="field"><label for="bv-pass">Contraseña WiFi</label><input id="bv-pass" value="cieloazul1"></div>
+            <div class="field full"><label for="bv-extra">Indicaciones para llegar (opcional)</label><textarea id="bv-extra" placeholder="Ej.: avisanos 30 minutos antes y te esperamos en la entrada."></textarea></div>
+          </div>
+          <div class="acts"><button type="button" class="btn pri" id="bv-dl">Descargar imagen</button><button type="button" class="btn" id="bv-txt">Copiar mensaje</button></div>
+        </div>
+        <label for="rc-copia" class="muted" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Texto para copiar</label>
+        <textarea id="rc-copia" hidden style="min-height:160px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface)"></textarea>
+      </div>
+      <div class="panel prev"><p class="eyebrow">Vista previa</p><canvas id="rc-canvas" width="1080" height="1350" role="img" aria-label="Vista previa de la imagen para el cliente"></canvas></div>
+    </div>
+  </section>
+
+  <!-- EXCEL VINCULADO / CONFIGURACIÓN -->
+  <section class="view" id="v-excel" hidden aria-labelledby="t-xl">
+    <div class="head">
+      <div><p class="eyebrow">Configuración · Google Sheets</p><h1 id="t-xl">Excel vinculado</h1></div>
+    </div>
+    <div class="grid2">
+      <div class="panel" style="display:flex;flex-direction:column;gap:14px">
+        <h2 style="margin:0">Estado de la conexión</h2>
+        <div class="kv">
+          <div><span>Estado</span><b><span id="cf-estado" class="pill s-sinpago">—</span></b></div>
+          <div><span>Última sincronización</span><b id="cf-sync">—</b></div>
+        </div>
+        <div class="kv">
+          <div><span>Hoja conectada</span><b id="cf-hoja-nombre">—</b></div>
+          <div><span>Datos</span><b id="cf-reservas">—</b></div>
+        </div>
+        <p class="muted" style="margin:0;font-size:13px;overflow-wrap:anywhere">ID: <span id="cf-hoja-id">—</span></p>
+        <div id="cf-error" class="banner warn" hidden></div>
+        <div class="acts">
+          <button class="btn pri" type="button" id="b-drive">Actualizar con los datos más recientes</button>
+          <a class="btn" id="cf-abrir" href="#" target="_blank" rel="noopener">Abrir planilla</a>
+        </div>
+        <p class="muted" style="margin:0;font-size:14px">Cada reserva, pago, cancelación, recibo o tarifa que guardás se escribe al instante en la planilla: en la pestaña BD_RESERVAS (y BD_PAGOS / BD_RECIBOS / BD_TARIFAS) y en el bloque de la cabaña de la hoja del mes. “Actualizar” además incorpora lo que se haya escrito a mano en las hojas mensuales.</p>
+        <button class="btn" type="button" id="b-reconstruir" style="align-self:flex-start">Reescribir hojas mensuales desde el sistema</button>
+      </div>
+      <form class="panel" id="cf-form" style="display:flex;flex-direction:column;gap:14px">
+        <h2 style="margin:0">Conectar planilla</h2>
+        <div class="field"><label for="cf-endpoint">URL del Apps Script (termina en /exec)</label><input id="cf-endpoint" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" required></div>
+        <div class="field"><label for="cf-hoja">Enlace de la hoja de Google Sheets</label><input id="cf-hoja" type="url" inputmode="url" placeholder="https://docs.google.com/spreadsheets/d/…/edit"></div>
+        <div class="field"><label for="cf-token">Clave de acceso (solo si la definiste en el Apps Script)</label><input id="cf-token" type="password" autocomplete="off"></div>
+        <button class="btn pri" type="submit" id="cf-guardar" style="align-self:flex-start">Conectar y guardar</button>
+        <p class="muted" style="margin:0;font-size:14px">Si cambiás el enlace por otra planilla, la cuenta que publicó el Apps Script tiene que tener permiso de edición en esa hoja. Estos datos se guardan solo en este navegador.</p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<nav class="botnav" aria-label="Secciones">
+  <a href="#hoy" data-v="hoy"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Hoy</a>
+  <a href="#calendario" data-v="calendario"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendario</a>
+  <button type="button" class="plus" data-new aria-label="Nueva reserva"><span class="c"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Nueva</button>
+  <a href="#reservas" data-v="reservas"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Reservas</a>
+  <a href="#recibos" data-v="recibos"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>Recibos</a>
+  <a href="#excel" data-v="excel"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>Excel</a>
+</nav>
+
+<!-- Diálogo: ver / editar / nueva reserva -->
+<dialog id="dlg" aria-labelledby="dlg-t">
+  <form class="dlg" id="dlg-form" method="dialog">
+    <div class="dlg-h"><h2 id="dlg-t">Nueva reserva</h2><button type="button" class="x" id="dlg-x" aria-label="Cerrar">×</button></div>
+    <div class="dlg-b" id="dlg-b">
+      <div id="d-info" hidden></div>
+      <div class="acts" id="d-acts">
+        <a class="btn sm" id="d-wa" href="#" hidden>WhatsApp</a>
+        <button type="button" class="btn sm" id="d-rec" hidden>Recibo</button>
+        <button type="button" class="btn sm" id="d-bien" hidden>Mensaje de llegada</button>
+        <button type="button" class="btn sm dan" id="d-cancel" hidden>Cancelar reserva</button>
+        <button type="button" class="btn sm dan" id="d-del" hidden>Eliminar reserva</button>
+      </div>
+      <div id="d-danger" hidden style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"></div>
+      <div>
+        <p class="eyebrow">Estado</p>
+        <div class="seg" id="seg" role="group" aria-label="Estado de la reserva">
+          <button type="button" data-st="porconfirmar">Por confirmar</button>
+          <button type="button" data-st="sinpago">Confirmada sin pago</button>
+          <button type="button" data-st="sena">Con seña</button>
+          <button type="button" data-st="pagada">Pagada</button>
+        </div>
+      </div>
+      <div class="form">
+        <div class="field"><label for="r-in">Llegada</label><input id="r-in" type="date" required></div>
+        <div class="field"><label for="r-out">Salida</label><input id="r-out" type="date" required></div>
+        <div class="field"><label for="r-pers">Personas</label><input id="r-pers" type="number" min="1" max="40" inputmode="numeric" placeholder="¿Cuántos son?"></div>
+        <div class="field"><label for="r-cab">Cabaña</label><div style="display:flex;gap:8px;align-items:center"><span id="r-cab-chip"></span><select id="r-cab" style="flex:1"></select></div></div>
+        <div class="field full"><p class="eyebrow" style="margin:0">Cabañas para esas fechas</p><div id="r-disp" class="disp" role="group" aria-label="Elegir cabaña disponible"></div></div>
+        <div class="field full"><span id="r-check" class="check ok" role="status">—</span></div>
+        <div class="field"><label for="r-name">Huésped</label><input id="r-name" autocomplete="off" required placeholder="Nombre y apellido"></div>
+        <div class="field"><label for="r-tel">Teléfono / WhatsApp</label><input id="r-tel" type="tel" inputmode="tel" placeholder="+54 9 …"></div>
+        <div class="field"><label for="r-src">Cómo llegó</label>
+          <select id="r-src"><option>WhatsApp</option><option>Llamada</option><option>Instagram</option><option>Facebook</option><option>Airbnb</option><option>Booking</option><option>Laly</option><option>Directo</option><option>Otro</option></select></div>
+        <div class="field"><label for="r-total">Total ($)</label><input id="r-total" type="number" min="0" step="1000" inputmode="numeric" placeholder="0"><button type="button" class="btn sm" id="b-usar" hidden>Usar tarifa</button></div>
+        <div class="field"><label for="r-sena" id="r-sena-l">Seña recibida ($)</label><input id="r-sena" type="number" min="0" step="1000" inputmode="numeric" placeholder="0"></div>
+        <div class="field" id="f-medio"><label for="r-medio">Medio de la seña</label><select id="r-medio"><option>Transferencia</option><option>Efectivo</option><option>Mercado Pago</option><option>Tarjeta</option><option>Otro</option></select></div>
+        <div class="field"><label>Saldo a cobrar</label><output id="r-saldo" class="num" style="min-height:46px;display:flex;align-items:center;font-weight:700;font-size:18px">$0</output></div>
+        <div class="field full"><label for="r-nota">Notas</label><textarea id="r-nota" placeholder="Cama extra, hora de llegada, mascota…"></textarea></div>
+      </div>
+    </div>
+    <div class="sync-inline" role="status" aria-live="polite" hidden><span class="si-t"></span><button type="button" class="btn sm si-r" hidden>Reintentar</button></div>
+    <div class="dlg-f">
+      <button type="button" class="btn" id="d-close">Cerrar</button>
+      <button type="submit" class="btn pri" id="d-save">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgp" aria-labelledby="dlgp-t" class="small">
+  <form class="dlg" id="dlgp-form" method="dialog">
+    <div class="dlg-h"><h2 id="dlgp-t">Tarifa</h2><button type="button" class="x" id="dlgp-x" aria-label="Cerrar">×</button></div>
+    <div class="dlg-b">
+      <div class="field"><label for="p-val">Precio por noche ($)</label><input id="p-val" type="number" min="0" step="1000" inputmode="numeric" required></div>
+      <p class="muted" style="margin:0;font-size:14px">Se usa para calcular el total sugerido de las reservas nuevas. Las reservas ya anotadas no cambian.</p>
+    </div>
+    <div class="sync-inline" role="status" aria-live="polite" hidden><span class="si-t"></span><button type="button" class="btn sm si-r" hidden>Reintentar</button></div>
+    <div class="dlg-f"><button type="button" class="btn" id="dlgp-c">Cancelar</button><button type="submit" class="btn pri">Guardar tarifa</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
