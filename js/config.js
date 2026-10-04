@@ -2,7 +2,7 @@
    endpoint: URL de la implementación del Apps Script (termina en /exec). También se puede cargar desde la sección "Excel vinculado".
    sheetId: planilla vinculada. */
 window.CIELO_CONFIG = {
-  endpoint: '',
+  endpoint: 'https://script.google.com/macros/s/AKfycbz0pjXY0zNwe0HMROb6obTv45KCsCPTcZ-fBScF_jyxisSUydO8cvss6YDK1LKLAo56/exec',
   sheetId: '1BjmyM7fHC6nOWI0z3AB0s3kEesXsRpRNT6MRz6Qogx4',
   sheetUrl: 'https://docs.google.com/spreadsheets/d/1BjmyM7fHC6nOWI0z3AB0s3kEesXsRpRNT6MRz6Qogx4/edit'
 };
