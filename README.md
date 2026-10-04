@@ -61,9 +61,16 @@ Si Google no responde, el sistema muestra **Error al sincronizar** con un botón
 4. Arriba, elegí la función `configurarPorPrimeraVez` y tocá **Ejecutar**. Aceptá los permisos que pide Google. Esto crea las pestañas BD_* y copia las reservas existentes; podés verlo en el registro de ejecución.
 5. Tocá **Implementar › Nueva implementación**. Tipo: **Aplicación web**. Ejecutar como: **Yo**. Quién tiene acceso: **Cualquier persona**. Tocá **Implementar**.
 6. Copiá la **URL de la aplicación web**; termina en `/exec`.
-7. Opcional, para que nadie más pueda usar esa URL: en **Configuración del proyecto › Propiedades del script**, agregá `API_TOKEN` con una clave. Después escribí esa misma clave en el sistema, en la sección "Excel vinculado". La clave queda guardada solo en tu navegador.
-
 Si más adelante cambiás `Codigo.gs`, usá **Implementar › Administrar implementaciones › Editar › Nueva versión** para mantener la misma URL.
+
+## Contraseña de acceso
+
+Al abrir el sistema pide una contraseña. La verifica el Apps Script en cada pedido, así que sin ella no se pueden ver ni cambiar datos, aunque alguien tenga el link.
+
+- La contraseña está en `apps-script/Codigo.gs`, en la línea `var CLAVE_ACCESO = '...'`. Para cambiarla, editá ese valor en el editor de Apps Script y publicá una **Nueva versión** (Implementar › Administrar implementaciones › lápiz › Versión: Nueva versión › Implementar).
+- Alternativa sin tocar el código: en **Configuración del proyecto › Propiedades del script** creá `API_TOKEN` con la contraseña nueva. Tiene prioridad sobre la del código.
+- "Recordar en este dispositivo" guarda la contraseña en ese navegador. **Cerrar sesión** (sección Excel vinculado) la borra.
+- La contraseña no aparece en `index.html` ni en `js/`; solo vive en el Apps Script, que no se sirve al navegador.
 
 ## Paso 2 · Configurar el sitio
 
@@ -109,14 +116,14 @@ git push -u origin main
 ## Qué no se debe publicar
 
 - Ninguna clave privada ni archivo de credenciales de Google. Este proyecto no los usa; el Apps Script corre con tu cuenta de Google.
-- El valor de `API_TOKEN` no va en el código: se escribe solo en el navegador, en "Excel vinculado".
+- La contraseña de acceso está solo en `apps-script/Codigo.gs` (que no se publica en el sitio) o en la propiedad `API_TOKEN` del script. El repositorio debe ser privado.
 - Copias de la planilla (`.xlsx`, `.csv`). El `.gitignore` ya las excluye.
 
-La URL `/exec` y el ID de la planilla quedan visibles en el navegador. Por eso conviene definir `API_TOKEN` si el link del sistema puede llegar a otras personas.
+La URL `/exec` y el ID de la planilla quedan visibles en el navegador; sin la contraseña no sirven para nada.
 
 ## Cómo comprobar que la sincronización funciona
 
-1. Abrí el sistema publicado. En **Excel vinculado** tiene que decir **Conectado**, el nombre de la planilla y la hora de la última sincronización.
+1. Abrí el sistema publicado e ingresá la contraseña. En **Excel vinculado** tiene que decir **Conectado**, el nombre de la planilla y la hora de la última sincronización.
 2. Creá una reserva de prueba con un nombre claro, por ejemplo `PRUEBA (borrar)`. Debe aparecer en BD_RESERVAS con un ID `RES-…` y en la hoja del mes, en el bloque de su cabaña.
 3. Editala: cambiá el nombre. Se modifica esa misma fila; no se crea otra.
 4. En **Recibos**, registrá un pago. Aparece en BD_PAGOS y en BD_RECIBOS, y cambian el Pagado y el Saldo de la reserva y la columna Seña de la hoja del mes.

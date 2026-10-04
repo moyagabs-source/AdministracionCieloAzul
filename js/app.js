@@ -187,7 +187,15 @@ function toast(t){ var el = $('toast'); el.textContent = t; el.hidden = false; c
 function banner(t, warn){ var b = $('banner'); if (!t) { b.hidden = true; return; } b.textContent = t; b.className = 'banner' + (warn ? ' warn' : ''); b.hidden = false; }
 
 /* ---------- Conexión con Google Sheets (Apps Script) ---------- */
-var CFG_KEY = 'cieloazul.config', CACHE_KEY = 'cieloazul.cache';
+var CFG_KEY = 'cieloazul.config', CACHE_KEY = 'cieloazul.cache', CLAVE_KEY = 'cieloazul.clave';
+function claveSesion(){ try { return sessionStorage.getItem(CLAVE_KEY) || localStorage.getItem(CLAVE_KEY) || ''; } catch (e) { return ''; } }
+function guardarClave(v, recordar){ try { sessionStorage.setItem(CLAVE_KEY, v); if (recordar) localStorage.setItem(CLAVE_KEY, v); else localStorage.removeItem(CLAVE_KEY); } catch (e) {} }
+function borrarClave(){ try { sessionStorage.removeItem(CLAVE_KEY); localStorage.removeItem(CLAVE_KEY); localStorage.removeItem(CACHE_KEY); } catch (e) {} }
+function bloquear_pantalla(msg){
+  document.body.classList.add('bloqueado'); S.res = []; S.pagos = []; S.recibos = []; S.loaded = false; S.edit = false;
+  var e = $('gate-err'); if (msg) { e.textContent = msg; e.hidden = false; } else e.hidden = true;
+  setTimeout(function(){ try { $('gate-pass').focus(); } catch (x) {} }, 50);
+}
 function cfg(){
   var base = window.CIELO_CONFIG || {}, loc = {};
   try { loc = JSON.parse(localStorage.getItem(CFG_KEY) || '{}') || {}; } catch (e) {}
@@ -201,7 +209,7 @@ function nuevaClave(){ try { if (crypto.randomUUID) return crypto.randomUUID(); 
 async function api(accion, datos){
   var c = cfg();
   if (!c.endpoint) { var e0 = new Error('Falta configurar la conexión con Google Sheets (sección Excel vinculado).'); e0.code = 'config'; throw e0; }
-  var body = Object.assign({ accion: accion, hoja: c.sheetId || '', token: c.token || '' }, datos || {});
+  var body = Object.assign({ accion: accion, hoja: c.sheetId || '', token: claveSesion() }, datos || {});
   var ctrl = new AbortController(), t = setTimeout(function(){ ctrl.abort(); }, 45000);
   var r;
   try {
@@ -213,7 +221,10 @@ async function api(accion, datos){
   var j = null;
   if (!r.ok) { var e4 = new Error('Google Sheets no respondió (error ' + r.status + '). Probá de nuevo en unos segundos.'); e4.code = 'http'; throw e4; }
   try { j = await r.json(); } catch (err) { var e2 = new Error('La URL configurada no respondió como el Apps Script del sistema. Revisá que sea la URL de la implementación (termina en /exec).'); e2.code = 'respuesta'; throw e2; }
-  if (!j || !j.ok) { var e3 = new Error((j && j.error) || 'Google Sheets rechazó la operación.'); e3.code = (j && j.code) || 'error'; throw e3; }
+  if (!j || !j.ok) {
+    if (j && j.code === 'token' && accion !== 'ping') { borrarClave(); bloquear_pantalla('La sesión ya no es válida. Volvé a ingresar la contraseña.'); }
+    var e3 = new Error((j && j.error) || 'Google Sheets rechazó la operación.'); e3.code = (j && j.code) || 'error'; throw e3;
+  }
   return j;
 }
 
@@ -295,12 +306,12 @@ function usarCache(){
 function initConexion(){
   $('cf-form').addEventListener('submit', async function(e){
     e.preventDefault();
-    var endpoint = $('cf-endpoint').value.trim(), hojaTxt = $('cf-hoja').value.trim(), token = $('cf-token').value.trim();
+    var endpoint = $('cf-endpoint').value.trim(), hojaTxt = $('cf-hoja').value.trim();
     if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(endpoint)) { S.errorConexion = 'La URL del Apps Script tiene que empezar con https://script.google.com/…/exec'; renderExcel(); return; }
     var id = idDeHoja(hojaTxt);
     if (hojaTxt && !id) { S.errorConexion = 'No reconozco ese enlace de Google Sheets. Copiá el enlace completo de la hoja.'; renderExcel(); return; }
     var anterior = cfg();
-    guardarCfg({ endpoint: endpoint, sheetId: id, sheetUrl: hojaTxt, token: token });
+    guardarCfg({ endpoint: endpoint, sheetId: id, sheetUrl: hojaTxt });
     bloquear(true); estadoSync('saving', 'Probando conexión…');
     try {
       var j = await api('ping', {});
@@ -315,6 +326,23 @@ function initConexion(){
       bloquear(false);
     }
     renderExcel();
+  });
+  $('b-salir').addEventListener('click', function(){ borrarClave(); location.hash = 'hoy'; bloquear_pantalla(''); render(); });
+  $('gate-form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var v = $('gate-pass').value.trim(); if (!v) return;
+    var btn = $('gate-btn'); btn.disabled = true; btn.textContent = 'Verificando…'; $('gate-err').hidden = true;
+    guardarClave(v, $('gate-rem').checked);
+    try {
+      if (!cfg().endpoint) throw Object.assign(new Error('config'), { code: 'config' });
+      await api('ping', {});
+      document.body.classList.remove('bloqueado'); $('gate-pass').value = '';
+      await cargar();
+    } catch (err) {
+      if (err.code === 'config') { document.body.classList.remove('bloqueado'); await cargar(); return; }
+      borrarClave();
+      $('gate-err').textContent = err.code === 'token' ? 'Contraseña incorrecta.' : 'No se pudo verificar con Google Sheets: ' + err.message; $('gate-err').hidden = false;
+    } finally { btn.disabled = false; btn.textContent = 'Entrar'; }
   });
   $('b-drive').addEventListener('click', async function(){
     try { var r = await escribir('importar', {}, null); toast(r.agregadas ? 'Se agregaron ' + r.agregadas + ' reservas escritas a mano en la planilla.' : 'Todo al día: los datos vienen de la planilla.'); } catch (e) {}
@@ -388,11 +416,17 @@ function renderHoy(){
       '</div></article>';
   }).join('');
   $('cabins').innerHTML = S.loaded ? html : '<div class="empty">Cargando cabañas…</div>';
-  var dsh = dispo(ci, co, pers);
-  $('chk-disp').innerHTML = !ok ? '' : '<p class="eyebrow" style="flex:1 1 100%;margin:0">' + (libres ? 'Disponibles · tocá una para anotar la reserva' : 'Ninguna cabaña libre para ' + pers + ' personas en esas fechas') + '</p>' + dsh.filter(function(d){ return d.libre; }).map(function(d){ return S.edit ? chipDisp(d, null, 'data-hoydisp') : chipDisp(d, null, 'data-x'); }).join('') + dsh.filter(function(d){ return !d.libre; }).map(function(d){ return chipDisp(d, null, 'data-x'); }).join('');
+  var dsh = dispo(ci, co, pers), nn = ok ? dn(co) - dn(ci) : 0;
   var cr = $('chk-res');
-  if (!ok) { cr.textContent = 'Elegí llegada y salida'; cr.className = 'check bad'; }
-  else { cr.textContent = libres + ' libre' + (libres === 1 ? '' : 's') + ' · ' + (dn(co) - dn(ci)) + ' noche' + (dn(co) - dn(ci) === 1 ? '' : 's'); cr.className = 'check ' + (libres ? 'ok' : 'bad'); }
+  if (!ok) { cr.className = 'chk-res warn'; cr.innerHTML = '<b>Elegí la llegada y la salida</b><span>La salida tiene que ser después de la llegada.</span>'; $('chk-disp').innerHTML = ''; }
+  else {
+    cr.className = 'chk-res ' + (libres ? 'ok' : 'bad');
+    cr.innerHTML = '<b>' + (libres ? libres + (libres === 1 ? ' cabaña libre' : ' cabañas libres') : 'Ninguna cabaña libre') + '</b><span>para ' + pers + (pers === 1 ? ' persona' : ' personas') + ' · ' + nn + (nn === 1 ? ' noche' : ' noches') + ' · ' + largo(ci) + ' → ' + largo(co) + '</span>';
+    var ls = dsh.filter(function(d){ return d.libre; }), no = dsh.filter(function(d){ return !d.libre; });
+    $('chk-disp').innerHTML = (ls.length ? '<div class="dcards">' + ls.map(function(d){ var c = d.c, pr = precio(c.id);
+      return '<div class="dcard" style="--cc:' + c.col + ';--ct:' + c.tint + '"><div class="dc-top">' + chipCab(c.id) + '<b>' + esc(c.n || 'Cabaña 0') + '</b><span class="pill s-libre">Libre</span></div><div class="dc-mid"><span>Hasta ' + c.max + ' personas</span>' + (pr ? '<span><b class="num">' + plata(pr * nn) + '</b> total · ' + plata(pr) + ' x noche</span>' : '<span>Tarifa sin cargar</span>') + '</div>' + (S.edit ? '<button type="button" class="btn pri sm" data-hoydisp="' + c.id + '">Anotar reserva</button>' : '') + '</div>'; }).join('') + '</div>' : '') +
+      (no.length ? '<p class="dno"><b>No disponibles:</b> ' + no.map(function(d){ return '<span>' + chipCab(d.c.id) + esc(d.c.n || 'Cabaña 0') + ' <em>' + (d.busy ? 'ocupada' : 'hasta ' + d.c.max + ' pers.') + '</em></span>'; }).join('') + '</p>' : '');
+  }
   var nx = act.filter(function(r){ return dn(r.from) >= tn; }).sort(function(a,b){ return a.from < b.from ? -1 : a.from > b.from ? 1 : a.cabin - b.cabin; }).slice(0, 6);
   $('proximas').innerHTML = !S.loaded ? '<div class="empty">Cargando…</div>' : nx.length ? nx.map(fila).join('') : '<div class="empty">No hay llegadas próximas. Tocá “Nueva” para anotar una reserva.</div>';
 }
@@ -413,28 +447,35 @@ function renderCal(){
   if (!S.cal) { var d = new Date(); S.cal = { y: d.getFullYear(), m: d.getMonth() + 1 }; }
   var y = S.cal.y, m = S.cal.m, first = dn(y + '-' + p2(m) + '-01'), nd = new Date(Date.UTC(y, m, 0)).getUTCDate(), last = first + nd, tn = dn(hoy());
   $('m-lab').textContent = MES[m - 1] + ' ' + y;
-  $('legend').innerHTML = ['porconfirmar','sinpago','sena','pagada'].map(function(k){ return '<span class="pill s-' + k + '">' + ST[k] + '</span>'; }).join('') + '<span class="pill s-libre">Libre</span>';
+  $('legend').innerHTML = ['porconfirmar','sinpago','sena','pagada'].map(function(k){ return '<span class="lg"><i class="s-' + k + '"></i>' + ST[k] + '</span>'; }).join('') + '<span class="lg"><i class="lg-libre"></i>Libre · tocá para anotar</span>';
   var act = activas();
-  var ocupadas = 0, libresDia = [];
+  var ocupadas = 0, libresDia = [], porCab = {};
+  CAB.forEach(function(c){ porCab[c.id] = 0; });
   for (var q = 0; q < nd; q++) {
     var dq = first + q, oc = 0;
-    CAB.forEach(function(c){ if (act.some(function(r){ return r.cabin === c.id && dn(r.from) <= dq && dn(r.to) > dq; })) oc++; });
+    CAB.forEach(function(c){ if (act.some(function(r){ return r.cabin === c.id && dn(r.from) <= dq && dn(r.to) > dq; })) { oc++; porCab[c.id]++; } });
     ocupadas += oc; libresDia.push(CAB.length - oc);
   }
   var pct = Math.round(ocupadas * 100 / (nd * CAB.length));
+  var enMes = act.filter(function(r){ return r.from < iso(last) && r.to > iso(first); });
   var llegan = act.filter(function(r){ return dn(r.from) >= first && dn(r.from) < last; }).length;
-  $('cal-sum').innerHTML = '<span><b class="num">' + llegan + '</b> llegadas</span><span><b class="num">' + ocupadas + '</b> de ' + (nd * CAB.length) + ' noches ocupadas</span><span><b class="num">' + pct + '%</b> de ocupación</span>';
-  var COLW = 46, cal = $('cal');
-  cal.style.gridTemplateColumns = '168px repeat(' + nd + ', ' + COLW + 'px)';
-  var h = '<div class="lab corner"><span>Cabaña</span></div>';
+  var ingreso = enMes.reduce(function(a, r){ return a + (r.total || 0); }, 0);
+  $('cal-sum').innerHTML =
+    '<div class="cs"><b class="num">' + llegan + '</b><span>llegadas en el mes</span></div>' +
+    '<div class="cs"><b class="num">' + ocupadas + '<small>/' + (nd * CAB.length) + '</small></b><span>noches ocupadas</span></div>' +
+    '<div class="cs"><b class="num">' + pct + '%</b><span>ocupación</span><i class="meter"><i style="width:' + pct + '%"></i></i></div>' +
+    '<div class="cs"><b class="num" style="font-size:22px">' + plata(ingreso) + '</b><span>total de las estadías del mes</span></div>';
+  var COLW = 48, cal = $('cal');
+  cal.style.gridTemplateColumns = '188px repeat(' + nd + ', ' + COLW + 'px)';
+  var h = '<div class="lab corner"><span>Cabaña</span><small>' + MES[m - 1].slice(0, 3) + ' ' + y + '</small></div>';
   for (var i = 0; i < nd; i++) {
     var wd = new Date((first + i) * 86400000).getUTCDay();
-    h += '<div class="dh' + (first + i === tn ? ' td' : (wd === 0 || wd === 6) ? ' we' : '') + (wd === 1 ? ' lun' : '') + '"><small>' + DIA[wd] + '</small><b>' + (i + 1) + '</b></div>';
+    h += '<div class="dh' + (first + i === tn ? ' td' : '') + ((wd === 0 || wd === 6) ? ' we' : '') + (wd === 1 ? ' lun' : '') + '"><small>' + DIA[wd] + '</small><b>' + (i + 1) + '</b></div>';
   }
-  h += '<div class="lab libres-l"><b>Cabañas libres</b><span>por noche</span></div>';
-  libresDia.forEach(function(n, i){ var wd = new Date((first + i) * 86400000).getUTCDay(); h += '<div class="fr' + (n === 0 ? ' full' : '') + (wd === 1 ? ' lun' : '') + (first + i === tn ? ' tdc' : '') + '" title="' + n + ' cabañas libres el ' + corto(iso(first + i)) + '">' + n + '</div>'; });
+  h += '<div class="lab libres-l"><b>Libres por noche</b><span>de ' + CAB.length + ' cabañas</span></div>';
+  libresDia.forEach(function(n, i){ var wd = new Date((first + i) * 86400000).getUTCDay(); var nivel = n === 0 ? 'full' : n <= 2 ? 'low' : ''; h += '<div class="fr ' + nivel + (wd === 1 ? ' lun' : '') + (first + i === tn ? ' tdc' : '') + '" title="' + n + ' cabañas libres el ' + corto(iso(first + i)) + '"><span>' + n + '</span></div>'; });
   CAB.forEach(function(c){
-    h += '<div class="lab" style="box-shadow:inset 6px 0 0 ' + c.col + '"><b class="cabh">' + chipCab(c.id, esc(c.n || 'Cabaña 0')) + '</b><span>' + c.cap + ' personas</span></div>';
+    h += '<div class="lab" style="--cc:' + c.col + ';--ct:' + c.tint + '"><b class="cabh">' + chipCab(c.id, esc(c.n || 'Cabaña 0')) + '</b><span>' + c.cap + ' pers. · <b class="num" style="font-size:12px">' + porCab[c.id] + '</b> noches</span></div>';
     var bk = act.filter(function(r){ return r.cabin === c.id && dn(r.from) < last && dn(r.to) > first; });
     var dd = 0;
     while (dd < nd) {
@@ -444,11 +485,13 @@ function renderCal(){
       if (hit) {
         var span = Math.max(1, Math.min(dn(hit.to), last) - day), n = noches(hit);
         var antes = dn(hit.from) < first, despues = dn(hit.to) > last;
-        h += '<button type="button" class="bar s-' + hit.estado + (antes ? ' cont-l' : '') + (despues ? ' cont-r' : '') + '" style="grid-column:span ' + span + '" data-id="' + esc(hit.id) + '" title="' + esc(hit.huesped + ' · ' + cabN(hit.cabin) + ' · llega ' + corto(hit.from) + ', sale ' + corto(hit.to) + ' · ' + ST[hit.estado]) + '">' +
-          (antes ? '‹ ' : '') + '<b>' + esc(hit.huesped) + '</b>' + (span >= 3 ? '<small> · ' + n + 'n · sale ' + parseInt(hit.to.slice(8), 10) + '</small>' : '') + (despues ? ' ›' : '') + '</button>';
+        var ini = (hit.huesped || '?').trim().charAt(0).toUpperCase();
+        var det = n + (n === 1 ? ' noche' : ' noches') + ' · sale ' + corto(hit.to) + (saldo(hit) ? ' · saldo ' + plata(saldo(hit)) : '');
+        h += '<button type="button" class="bar s-' + hit.estado + (span === 1 ? ' one' : '') + (antes ? ' cont-l' : '') + (despues ? ' cont-r' : '') + '" style="grid-column:span ' + span + ';--cc:' + c.col + '" data-id="' + esc(hit.id) + '" title="' + esc(hit.huesped + ' · ' + cabN(hit.cabin) + ' · llega ' + corto(hit.from) + ', sale ' + corto(hit.to) + ' · ' + ST[hit.estado]) + '">' +
+          (antes ? '<span class="arr">‹</span>' : (span >= 2 ? '<span class="av">' + esc(ini) + '</span>' : '')) + '<span class="bt"><b>' + esc(span === 1 ? hit.huesped.split(' ')[0] : hit.huesped) + '</b>' + (span >= 3 ? '<small>' + esc(det) + '</small>' : '') + '</span>' + (despues ? '<span class="arr">›</span>' : '') + '</button>';
         dd += span;
       } else {
-        h += '<button type="button" class="c' + (day === tn ? ' tc' : (wdd === 0 || wdd === 6) ? ' we' : '') + (wdd === 1 ? ' lun' : '') + '" data-cab="' + c.id + '" data-day="' + iso(day) + '" aria-label="' + esc(cabN(c.id)) + ', ' + corto(iso(day)) + ', libre"' + (S.edit ? '' : ' disabled') + '><span>+</span></button>';
+        h += '<button type="button" class="c' + (day === tn ? ' tc' : '') + ((wdd === 0 || wdd === 6) ? ' we' : '') + (wdd === 1 ? ' lun' : '') + '" data-cab="' + c.id + '" data-day="' + iso(day) + '" aria-label="' + esc(cabN(c.id)) + ', ' + corto(iso(day)) + ', libre"' + (S.edit ? '' : ' disabled') + '><span>+</span></button>';
         dd++;
       }
     }
@@ -481,7 +524,6 @@ function renderExcel(){
   var c = cfg(), h = S.hoja;
   $('cf-endpoint').value = $('cf-endpoint').value || c.endpoint || '';
   $('cf-hoja').value = $('cf-hoja').value || c.sheetUrl || (c.sheetId ? 'https://docs.google.com/spreadsheets/d/' + c.sheetId + '/edit' : '');
-  $('cf-token').value = $('cf-token').value || c.token || '';
   var est = S.conexion;
   var txtEst = est === 'ok' ? 'Conectado' : est === 'cache' ? 'Sin conexión · mostrando copia guardada' : est === 'config' ? 'Falta configurar' : est === 'cargando' ? 'Conectando…' : 'Error de conexión';
   $('cf-estado').textContent = txtEst;
@@ -659,6 +701,12 @@ document.addEventListener('click', function(e){
   if (t.hasAttribute('data-go')) { var g = t.getAttribute('data-go').split(':'); if (g[1]) S.filtro = g[1]; location.hash = g[0]; if (location.hash.slice(1) === g[0]) irA(g[0]); }
 });
 ['c-in','c-out','c-p'].forEach(function(id){ $(id).addEventListener('input', renderHoy); });
+document.querySelectorAll('[data-quick]').forEach(function(b){ b.addEventListener('click', function(){
+  var t = dn(hoy()), q = b.getAttribute('data-quick');
+  if (q === 'finde') { var wd = new Date(t * 86400000).getUTCDay(), hastaViernes = (5 - wd + 7) % 7; var v = t + hastaViernes; $('c-in').value = iso(v); $('c-out').value = iso(v + 2); }
+  else { var a = $('c-in').value ? dn($('c-in').value) : t; $('c-in').value = iso(a); $('c-out').value = iso(a + 7); }
+  renderHoy();
+}); });
 $('chk').addEventListener('submit', function(e){ e.preventDefault(); });
 document.querySelectorAll('input[type=date]').forEach(function(inp){ inp.addEventListener('click', function(){ try { if (inp.showPicker && !inp.disabled) inp.showPicker(); } catch (e) {} }); });
 $('q').addEventListener('input', function(){ S.q = this.value; renderLista(); });
@@ -675,6 +723,8 @@ $('d-bien').addEventListener('click', function(){ if (!S.cur) return; RC.id = S.
 $('m-prev').addEventListener('click', function(){ S.cal.m--; if (S.cal.m < 1) { S.cal.m = 12; S.cal.y--; } renderCal(); });
 $('m-next').addEventListener('click', function(){ S.cal.m++; if (S.cal.m > 12) { S.cal.m = 1; S.cal.y++; } renderCal(); });
 $('m-hoy').addEventListener('click', function(){ S.cal = null; renderCal(); });
+$('cal-l').addEventListener('click', function(){ $('calwrap').scrollBy({ left: -7 * 48, behavior: 'smooth' }); });
+$('cal-r').addEventListener('click', function(){ $('calwrap').scrollBy({ left: 7 * 48, behavior: 'smooth' }); });
 
 
 /* ---------- Recibos y mensaje de llegada ---------- */
@@ -894,7 +944,7 @@ opcionesCab();
 initRecibos();
 initConexion();
 irA(location.hash.slice(1) || 'hoy');
-cargar();
-setInterval(function(){ if (document.visibilityState === 'visible' && !$('dlg').open && !S.ocupado) cargar(true); }, 60000);
-document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible' && !S.ocupado) cargar(true); });
+if (claveSesion()) { document.body.classList.remove('bloqueado'); cargar(); } else bloquear_pantalla('');
+setInterval(function(){ if (document.visibilityState === 'visible' && !$('dlg').open && !S.ocupado && claveSesion()) cargar(true); }, 60000);
+document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible' && !S.ocupado && claveSesion()) cargar(true); });
 })();

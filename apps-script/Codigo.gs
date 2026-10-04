@@ -505,10 +505,14 @@ function responder(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// Contraseña para entrar al sistema. Para cambiarla, editá este valor (o definí la propiedad API_TOKEN
+// en Configuración del proyecto › Propiedades del script, que tiene prioridad) y creá una nueva versión de la implementación.
+var CLAVE_ACCESO = '21311719';
+
 function atender(accion, body) {
   var props = PropertiesService.getScriptProperties();
-  var token = props.getProperty('API_TOKEN');
-  if (token && String(body.token || '') !== token) return { ok: false, error: 'Clave de acceso incorrecta. Revisala en Configuración.', code: 'token' };
+  var token = props.getProperty('API_TOKEN') || CLAVE_ACCESO;
+  if (String(body.token || '') !== String(token)) return { ok: false, error: 'Contraseña incorrecta.', code: 'token' };
   var esLectura = accion === 'datos' || accion === 'ping';
   var lock = LockService.getScriptLock();
   try {

@@ -12,7 +12,18 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body class="bloqueado">
+<div id="gate" class="gate" role="dialog" aria-labelledby="gate-t" aria-modal="true">
+  <form class="gate-card" id="gate-form">
+    <img src="assets/images/logo.webp" alt="Cabañas Cielo Azul" class="gate-logo">
+    <h1 id="gate-t">Sistema de reservas</h1>
+    <p class="muted">Ingresá la contraseña para entrar.</p>
+    <div class="field"><label for="gate-pass">Contraseña</label><input id="gate-pass" type="password" inputmode="numeric" autocomplete="current-password" required autofocus></div>
+    <label class="gate-rem"><input type="checkbox" id="gate-rem" checked> Recordar en este dispositivo</label>
+    <div id="gate-err" class="check bad" role="alert" hidden></div>
+    <button type="submit" class="btn pri" id="gate-btn">Entrar</button>
+  </form>
+</div>
 <header class="top">
   <div class="top-in">
     <a class="brand" href="#hoy">
@@ -42,14 +53,15 @@
     </div>
     <div class="kpis" id="kpis"></div>
     <div class="panel">
-      <h2>¿Hay lugar?</h2>
+      <div class="chk-head"><div><h2 style="margin:0">Buscar disponibilidad</h2><p class="muted" style="margin:4px 0 0">Elegí las fechas y cuántas personas son: te muestro qué cabañas podés ofrecer.</p></div></div>
       <form class="chk" id="chk">
         <div class="field"><label for="c-in">Llegada</label><input id="c-in" type="date"></div>
         <div class="field"><label for="c-out">Salida</label><input id="c-out" type="date"></div>
         <div class="field"><label for="c-p">Personas</label>
           <select id="c-p"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
-        <div class="field"><span class="check ok" id="chk-res" role="status">…</span></div>
-        <div class="field full"><div id="chk-disp" class="disp"></div></div>
+        <div class="field qf"><label>Atajos</label><div class="quick"><button type="button" class="chip" data-quick="finde">Este finde</button><button type="button" class="chip" data-quick="semana">7 noches</button></div></div>
+        <div class="field full"><div id="chk-res" class="chk-res" role="status"></div></div>
+        <div class="field full"><div id="chk-disp" class="chk-disp"></div></div>
       </form>
     </div>
     <div class="cabins" id="cabins"><div class="empty">Cargando cabañas…</div></div>
@@ -73,7 +85,10 @@
     <div class="calsum" id="cal-sum"></div>
     <div class="legend" id="legend"></div>
     <div class="calwrap" id="calwrap"><div class="cal" id="cal"></div></div>
-    <p class="muted" style="margin:0">Cada barra es una estadía: empieza la noche de llegada y termina la noche antes de la salida. Tocá una barra para ver o editar la reserva, o un casillero libre para anotar una nueva.</p>
+    <div class="calfoot">
+      <p class="muted">Cada barra es una estadía: empieza la noche de llegada y termina la noche antes de la salida. Tocá una barra para ver o editar la reserva, o un casillero libre para anotar una nueva.</p>
+      <div class="nav"><button type="button" class="btn" id="cal-l" aria-label="Días anteriores">‹</button><button type="button" class="btn" id="cal-r" aria-label="Días siguientes">›</button></div>
+    </div>
   </section>
 
   <!-- RESERVAS -->
@@ -153,6 +168,7 @@
         <div class="acts">
           <button class="btn pri" type="button" id="b-drive">Actualizar con los datos más recientes</button>
           <a class="btn" id="cf-abrir" href="#" target="_blank" rel="noopener">Abrir planilla</a>
+          <button class="btn dan" type="button" id="b-salir">Cerrar sesión</button>
         </div>
         <p class="muted" style="margin:0;font-size:14px">Cada reserva, pago, cancelación, recibo o tarifa que guardás se escribe al instante en la planilla: en la pestaña BD_RESERVAS (y BD_PAGOS / BD_RECIBOS / BD_TARIFAS) y en el bloque de la cabaña de la hoja del mes. “Actualizar” además incorpora lo que se haya escrito a mano en las hojas mensuales.</p>
         <button class="btn" type="button" id="b-reconstruir" style="align-self:flex-start">Reescribir hojas mensuales desde el sistema</button>
@@ -161,9 +177,8 @@
         <h2 style="margin:0">Conectar planilla</h2>
         <div class="field"><label for="cf-endpoint">URL del Apps Script (termina en /exec)</label><input id="cf-endpoint" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" required></div>
         <div class="field"><label for="cf-hoja">Enlace de la hoja de Google Sheets</label><input id="cf-hoja" type="url" inputmode="url" placeholder="https://docs.google.com/spreadsheets/d/…/edit"></div>
-        <div class="field"><label for="cf-token">Clave de acceso (solo si la definiste en el Apps Script)</label><input id="cf-token" type="password" autocomplete="off"></div>
         <button class="btn pri" type="submit" id="cf-guardar" style="align-self:flex-start">Conectar y guardar</button>
-        <p class="muted" style="margin:0;font-size:14px">Si cambiás el enlace por otra planilla, la cuenta que publicó el Apps Script tiene que tener permiso de edición en esa hoja. Estos datos se guardan solo en este navegador.</p>
+        <p class="muted" style="margin:0;font-size:14px">Si cambiás el enlace por otra planilla, la cuenta que publicó el Apps Script tiene que tener permiso de edición en esa hoja. La contraseña de acceso se define en el Apps Script (ver README). Estos datos se guardan solo en este navegador.</p>
       </form>
     </div>
   </section>
