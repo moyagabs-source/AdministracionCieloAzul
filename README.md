@@ -24,6 +24,8 @@ Navegador (Vercel) ──fetch──▶ Apps Script /exec ──▶ Google Sheet
 
 El botón **+ Nueva reserva** abre un asistente de 4 pasos, pensado para usarse desde el celular sin conocimientos previos: fechas y personas → cabaña (solo se muestran las libres) → nombre y teléfono → total y seña. Al final muestra un resumen y el botón **Guardar reserva**. El estado (Por confirmar, Sin seña, Con seña, Pagada) se define solo según lo que se cargó. Para editar una reserva existente se usa la ficha completa.
 
+En el celular la lista completa de reservas (con buscador y filtros) está en la pantalla **Hoy**, debajo de las cabañas; la sección **Reservas** separada solo aparece en pantallas grandes.
+
 ## Cómo usa la planilla
 
 La planilla actual se conserva tal cual. El sistema agrega cuatro pestañas al final (las crea solo la primera vez):

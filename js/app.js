@@ -392,19 +392,31 @@ function ic(n, size){ return '<svg class="ic" width="' + (size || 18) + '" heigh
 function ponerIconos(){ document.querySelectorAll('[data-ic]').forEach(function(el){ if (el.querySelector('svg.ic')) return; el.insertAdjacentHTML('afterbegin', ic(el.getAttribute('data-ic'), el.getAttribute('data-ic-size') ? +el.getAttribute('data-ic-size') : 18)); }); }
 
 /* ---------- Navegación ---------- */
+/* En el celular no hay sección "Reservas": la lista completa vive en "Hoy", debajo de las cabañas. */
+function esMovil(){ return window.matchMedia('(max-width:1080px)').matches; }
+function ubicarLista(){
+  var box = $('res-box'), enHoy = esMovil();
+  if (enHoy && box.parentNode !== $('hoy-res')) $('hoy-res').appendChild(box);
+  if (!enHoy && box.parentNode !== $('v-reservas')) $('v-reservas').appendChild(box);
+  $('hoy-res').hidden = !enHoy; $('hoy-prox').hidden = enHoy;
+}
 function irA(v){
   if (['hoy','calendario','reservas','recibos','excel'].indexOf(v) < 0) v = 'hoy';
+  ubicarLista();
+  if (v === 'reservas' && esMovil()) {
+    v = 'hoy'; S.irLista = true;
+  }
   S.view = v;
   ['hoy','calendario','reservas','recibos','excel'].forEach(function(k){ $('v-' + k).hidden = k !== v; });
   document.querySelectorAll('[data-v]').forEach(function(a){ if (a.getAttribute('data-v') === v) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   render();
 }
 window.addEventListener('hashchange', function(){ irA(location.hash.slice(1)); });
-var _rz; window.addEventListener('resize', function(){ clearTimeout(_rz); _rz = setTimeout(function(){ if (S.view === 'calendario') renderCal(); }, 150); });
+var _rz; window.addEventListener('resize', function(){ clearTimeout(_rz); _rz = setTimeout(function(){ var antes = $('hoy-res').hidden; ubicarLista(); if (S.view === 'calendario') renderCal(); if (antes !== $('hoy-res').hidden) irA(location.hash.slice(1) || 'hoy'); }, 150); });
 
 /* ---------- Render ---------- */
 function render(){
-  if (S.view === 'hoy') renderHoy();
+  if (S.view === 'hoy') { renderHoy(); if (esMovil()) { renderLista(); if (S.irLista && S.loaded) { S.irLista = false; setTimeout(function(){ $('hoy-res').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); } } }
   if (S.view === 'calendario') renderCal();
   if (S.view === 'reservas') renderLista();
   if (S.view === 'excel') renderExcel();
