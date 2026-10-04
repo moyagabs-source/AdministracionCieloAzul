@@ -200,42 +200,61 @@
 <!-- Diálogo: ver / editar / nueva reserva -->
 <dialog id="dlg" aria-labelledby="dlg-t">
   <form class="dlg" id="dlg-form" method="dialog">
-    <div class="dlg-h"><h2 id="dlg-t">Nueva reserva</h2><button type="button" class="x" id="dlg-x" aria-label="Cerrar">×</button></div>
+    <div class="dlg-h"><div class="dlg-ht"><h2 id="dlg-t">Reserva</h2><p id="dlg-sub" class="dlg-sub" hidden></p></div><button type="button" class="x" id="dlg-x" aria-label="Cerrar">×</button></div>
+    <div class="dtabs" id="d-tabs" role="tablist" aria-label="Secciones de la reserva">
+      <button type="button" role="tab" data-dtab="info" aria-selected="true" aria-controls="dp-info" data-ic="list" data-ic-size="16">Información</button>
+      <button type="button" role="tab" data-dtab="editar" aria-selected="false" aria-controls="d-edit" data-ic="edit" data-ic-size="16"><span class="l">Editar reserva</span><span class="s">Editar</span></button>
+      <button type="button" role="tab" data-dtab="mas" aria-selected="false" aria-controls="d-more" data-ic="more" data-ic-size="16"><span class="l">Más opciones</span><span class="s">Más</span></button>
+    </div>
     <div class="dlg-b" id="dlg-b">
-      <div id="d-info" hidden></div>
+      <div id="dp-info" class="dpanel" role="tabpanel">
+      <div id="d-info" class="ficha" hidden></div>
       <div class="acts" id="d-acts">
-        <a class="btn sm" id="d-wa" href="#" hidden data-ic="chat" data-ic-size="16">WhatsApp</a>
-        <button type="button" class="btn sm" id="d-rec" hidden data-ic="receipt" data-ic-size="16">Recibo</button>
-        <button type="button" class="btn sm" id="d-bien" hidden data-ic="pin" data-ic-size="16">Mensaje de llegada</button>
-        <button type="button" class="btn sm dan" id="d-cancel" hidden data-ic="ban" data-ic-size="16">Cancelar reserva</button>
-        <button type="button" class="btn sm dan" id="d-del" hidden data-ic="trash" data-ic-size="16">Eliminar reserva</button>
+        <button type="button" class="btn pri" id="d-rec" hidden data-ic="receipt" data-ic-size="18">Registrar pago / Recibo</button>
+        <button type="button" class="btn" id="d-bien" hidden data-ic="pin" data-ic-size="18">Mensaje de llegada</button>
+        <a class="btn" id="d-wa" href="#" hidden target="_blank" rel="noopener" data-ic="chat" data-ic-size="18">Escribir por WhatsApp</a>
       </div>
-      <div id="d-danger" hidden style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"></div>
-      <div>
-        <p class="eyebrow">Estado</p>
-        <div class="seg" id="seg" role="group" aria-label="Estado de la reserva">
-          <button type="button" data-st="porconfirmar">Por confirmar</button>
-          <button type="button" data-st="sinpago">Confirmada sin pago</button>
-          <button type="button" data-st="sena">Con seña</button>
-          <button type="button" data-st="pagada">Pagada</button>
+      <div id="d-pagos" hidden></div>
+      </div>
+      <div class="dpanel" id="d-edit" role="tabpanel" hidden>
+        <div class="ds-b">
+          <div>
+            <p class="eyebrow">Estado</p>
+            <div class="seg" id="seg" role="group" aria-label="Estado de la reserva">
+              <button type="button" data-st="porconfirmar">Por confirmar</button>
+              <button type="button" data-st="sinpago">Confirmada sin pago</button>
+              <button type="button" data-st="sena">Con seña</button>
+              <button type="button" data-st="pagada">Pagada</button>
+            </div>
+          </div>
+          <div class="form">
+            <div class="field"><label for="r-in">Llegada</label><input id="r-in" type="date" required></div>
+            <div class="field"><label for="r-out">Salida</label><input id="r-out" type="date" required></div>
+            <div class="field"><label for="r-pers">Personas</label><input id="r-pers" type="number" min="1" max="40" inputmode="numeric" placeholder="¿Cuántos son?"></div>
+            <div class="field"><label for="r-cab">Cabaña</label><div style="display:flex;gap:8px;align-items:center"><span id="r-cab-chip"></span><select id="r-cab" style="flex:1"></select></div></div>
+            <div class="field full"><p class="eyebrow" style="margin:0">Cabañas para esas fechas</p><div id="r-disp" class="disp" role="group" aria-label="Elegir cabaña disponible"></div></div>
+            <div class="field full"><span id="r-check" class="check ok" role="status">—</span></div>
+            <div class="field"><label for="r-name">Huésped</label><input id="r-name" autocomplete="off" required placeholder="Nombre y apellido"></div>
+            <div class="field"><label for="r-tel">Teléfono / WhatsApp</label><input id="r-tel" type="tel" inputmode="tel" placeholder="+54 9 …"></div>
+            <div class="field"><label for="r-src">Cómo llegó</label>
+              <select id="r-src"><option>WhatsApp</option><option>Llamada</option><option>Instagram</option><option>Facebook</option><option>Airbnb</option><option>Booking</option><option>Laly</option><option>Directo</option><option>Otro</option></select></div>
+            <div class="field"><label for="r-total">Total ($)</label><input id="r-total" type="number" min="0" step="1000" inputmode="numeric" placeholder="0"><button type="button" class="btn sm" id="b-usar" hidden>Usar tarifa</button></div>
+            <div class="field"><label for="r-sena" id="r-sena-l">Seña recibida ($)</label><input id="r-sena" type="number" min="0" step="1000" inputmode="numeric" placeholder="0"></div>
+            <div class="field" id="f-medio"><label for="r-medio">Medio de la seña</label><select id="r-medio"><option>Transferencia</option><option>Efectivo</option><option>Mercado Pago</option><option>Tarjeta</option><option>Otro</option></select></div>
+            <div class="field"><label>Saldo a cobrar</label><output id="r-saldo" class="num" style="min-height:46px;display:flex;align-items:center;font-weight:700;font-size:18px">$0</output></div>
+            <div class="field full"><label for="r-nota">Notas</label><textarea id="r-nota" placeholder="Cama extra, hora de llegada, mascota…"></textarea></div>
+          </div>
         </div>
       </div>
-      <div class="form">
-        <div class="field"><label for="r-in">Llegada</label><input id="r-in" type="date" required></div>
-        <div class="field"><label for="r-out">Salida</label><input id="r-out" type="date" required></div>
-        <div class="field"><label for="r-pers">Personas</label><input id="r-pers" type="number" min="1" max="40" inputmode="numeric" placeholder="¿Cuántos son?"></div>
-        <div class="field"><label for="r-cab">Cabaña</label><div style="display:flex;gap:8px;align-items:center"><span id="r-cab-chip"></span><select id="r-cab" style="flex:1"></select></div></div>
-        <div class="field full"><p class="eyebrow" style="margin:0">Cabañas para esas fechas</p><div id="r-disp" class="disp" role="group" aria-label="Elegir cabaña disponible"></div></div>
-        <div class="field full"><span id="r-check" class="check ok" role="status">—</span></div>
-        <div class="field"><label for="r-name">Huésped</label><input id="r-name" autocomplete="off" required placeholder="Nombre y apellido"></div>
-        <div class="field"><label for="r-tel">Teléfono / WhatsApp</label><input id="r-tel" type="tel" inputmode="tel" placeholder="+54 9 …"></div>
-        <div class="field"><label for="r-src">Cómo llegó</label>
-          <select id="r-src"><option>WhatsApp</option><option>Llamada</option><option>Instagram</option><option>Facebook</option><option>Airbnb</option><option>Booking</option><option>Laly</option><option>Directo</option><option>Otro</option></select></div>
-        <div class="field"><label for="r-total">Total ($)</label><input id="r-total" type="number" min="0" step="1000" inputmode="numeric" placeholder="0"><button type="button" class="btn sm" id="b-usar" hidden>Usar tarifa</button></div>
-        <div class="field"><label for="r-sena" id="r-sena-l">Seña recibida ($)</label><input id="r-sena" type="number" min="0" step="1000" inputmode="numeric" placeholder="0"></div>
-        <div class="field" id="f-medio"><label for="r-medio">Medio de la seña</label><select id="r-medio"><option>Transferencia</option><option>Efectivo</option><option>Mercado Pago</option><option>Tarjeta</option><option>Otro</option></select></div>
-        <div class="field"><label>Saldo a cobrar</label><output id="r-saldo" class="num" style="min-height:46px;display:flex;align-items:center;font-weight:700;font-size:18px">$0</output></div>
-        <div class="field full"><label for="r-nota">Notas</label><textarea id="r-nota" placeholder="Cama extra, hora de llegada, mascota…"></textarea></div>
+      <div class="dpanel" id="d-more" role="tabpanel" hidden>
+        <div class="ds-b">
+          <p class="muted" style="margin:0">Estas acciones cambian la reserva en la planilla. Cancelar la deja registrada como cancelada y libera las noches; eliminar la borra del todo.</p>
+          <div class="acts" id="d-acts2">
+            <button type="button" class="btn dan" id="d-cancel" hidden data-ic="ban" data-ic-size="16">Cancelar reserva</button>
+            <button type="button" class="btn dan" id="d-del" hidden data-ic="trash" data-ic-size="16">Eliminar reserva</button>
+          </div>
+          <div id="d-danger" hidden style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"></div>
+        </div>
       </div>
     </div>
     <div class="sync-inline" role="status" aria-live="polite" hidden><span class="si-t"></span><button type="button" class="btn sm si-r" hidden>Reintentar</button></div>

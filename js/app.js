@@ -380,6 +380,9 @@ var ICONS = {
   download: '<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
   copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/>',
   edit: '<path d="M4 20h4l11-11-4-4L4 16z"/>',
+  more: '<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>',
+  phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  note: '<path d="M4 4h16v12l-4 4H4z"/><path d="M16 20v-4h4M8 9h8M8 13h5"/>',
   chevron: '<path d="M9 6l6 6-6 6"/>',
   lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   wifi: '<path d="M2 9a16 16 0 0 1 20 0M5.5 12.5a11 11 0 0 1 13 0M9 16a5.5 5.5 0 0 1 6 0"/><circle cx="12" cy="19" r="1"/>',
@@ -537,7 +540,7 @@ function renderCal(){
       if (hit) {
         var span = Math.max(1, Math.min(dn(hit.to), last) - day), n = noches(hit);
         var antes = dn(hit.from) < first, despues = dn(hit.to) > last;
-        var ini = (hit.huesped || '?').trim().charAt(0).toUpperCase();
+        var ini = hit.estado === 'porconfirmar' ? '?' : (hit.huesped || '?').trim().charAt(0).toUpperCase();
         var det = n + (n === 1 ? ' noche' : ' noches') + ' · sale ' + corto(hit.to) + (saldo(hit) ? ' · saldo ' + plata(saldo(hit)) : '');
         h += '<button type="button" class="bar s-' + hit.estado + (span === 1 ? ' one' : '') + (antes ? ' cont-l' : '') + (despues ? ' cont-r' : '') + '" style="grid-column:span ' + span + ';--cc:' + c.col + '" data-id="' + esc(hit.id) + '" title="' + esc(hit.huesped + ' · ' + cabN(hit.cabin) + ' · llega ' + corto(hit.from) + ', sale ' + corto(hit.to) + ' · ' + ST[hit.estado]) + '">' +
           (antes ? '<span class="arr">‹</span>' : (span >= 2 ? '<span class="av">' + esc(ini) + '</span>' : '')) + '<span class="bt"><b>' + esc(span === 1 ? hit.huesped.split(' ')[0] : hit.huesped) + '</b>' + (span >= 3 ? '<small>' + esc(det) + '</small>' : '') + '</span>' + (despues ? '<span class="arr">›</span>' : '') + '</button>';
@@ -614,29 +617,55 @@ function abrir(r, pre){
   if (r) {
     info.hidden = false;
     var pg = (S.pagos || []).filter(function(p){ return p.reserva === r.id; }).sort(function(a, b){ return a.id < b.id ? -1 : 1; });
-    info.innerHTML = '<div class="kv"><div><span>Reserva</span><b>' + esc(r.id) + '</b></div><div><span>Estado</span><b><span class="pill s-' + r.estado + '">' + ST[r.estado] + '</span></b></div><div><span>Noches</span><b>' + noches(r) + '</b></div><div><span>Pagado</span><b class="num">' + plata(r.sena) + '</b></div><div><span>Saldo</span><b class="num">' + plata(saldo(r)) + '</b></div></div>' +
-      (r.tel ? '<p style="margin:10px 0 0">Teléfono: <b style="user-select:all">' + esc(r.tel) + '</b></p>' : '') +
-      '<div style="margin-top:12px"><p class="eyebrow" style="margin:0 0 6px">Pagos registrados</p>' + (pg.length ? '<ul class="pagos">' + pg.map(function(p){ var act = p.estado === 'activo'; return '<li class="' + (act ? '' : 'anulado') + '"><span><b class="num">' + plata(p.monto) + '</b> · ' + esc(p.concepto) + ' · ' + esc(p.medio) + ' · ' + corto(p.fecha) + (p.recibo ? ' · ' + esc(p.recibo) : '') + (act ? '' : ' · ' + esc(p.estado)) + '</span>' + (act && S.edit ? '<button type="button" class="btn sm dan" data-anular="' + esc(p.id) + '" data-critico>Anular</button>' : '') + '</li>'; }).join('') + '</ul>' : '<p class="muted" style="margin:0;font-size:14px">Sin pagos. Registrá señas y pagos desde el botón Recibo.</p>') + '</div>';
-  } else info.hidden = true;
+    var nn = noches(r), sal = saldo(r), c = cabC(r.cabin);
+    $('dlg-sub').hidden = false;
+    $('dlg-sub').innerHTML = '<span class="pill s-' + r.estado + '">' + ST[r.estado] + '</span><span class="muted">' + esc(r.id) + '</span>';
+    info.innerHTML =
+      '<div class="fi-row"><span class="fi-i">' + ic('home', 20) + '</span><div><span class="fi-l">Cabaña</span><b>' + chipCab(r.cabin) + ' ' + esc(c.n || 'Cabaña 0') + '</b></div>' +
+        '<div><span class="fi-l">Personas</span><b>' + (r.personas ? r.personas + (r.personas === 1 ? ' persona' : ' personas') : '<span class="muted">sin cargar</span>') + '</b></div></div>' +
+      '<div class="fi-row"><span class="fi-i">' + ic('login', 20) + '</span><div><span class="fi-l">Llegan</span><b>' + largo(r.from) + '</b></div>' +
+        '<div><span class="fi-l">Se van</span><b>' + largo(r.to) + '</b></div></div>' +
+      '<div class="fi-money ' + (sal > 0 ? 'debe' : r.total ? 'ok' : 'nada') + '"><div><span class="fi-l">Total</span><b class="num">' + (r.total ? plata(r.total) : '<span class="muted">sin cargar</span>') + '</b></div><div><span class="fi-l">Pagado</span><b class="num">' + plata(r.sena) + '</b></div><div class="fi-saldo"><span class="fi-l">' + (r.estado === 'cancelada' ? 'Cancelada' : sal > 0 ? 'Falta cobrar' : 'Saldo') + '</span><b class="num">' + (r.estado === 'cancelada' ? '—' : sal > 0 ? plata(sal) : r.total ? 'Al día' : '<span class="muted">—</span>') + '</b></div>' +
+        '<span class="fi-n">' + nn + (nn === 1 ? ' noche' : ' noches') + (r.total && nn ? ' · ' + plata(Math.round(r.total / nn)) + ' por noche' : '') + '</span></div>' +
+      (r.tel || r.origen ? '<div class="fi-row fi-min"><span class="fi-i">' + ic('phone', 20) + '</span><div><span class="fi-l">Teléfono</span><b style="user-select:all">' + (r.tel ? esc(r.tel) : '<span class="muted">sin cargar</span>') + '</b></div>' + (r.origen ? '<div><span class="fi-l">Llegó por</span><b>' + esc(r.origen) + '</b></div>' : '') + '</div>' : '') +
+      (r.nota ? '<div class="fi-row fi-min"><span class="fi-i">' + ic('note', 20) + '</span><div><span class="fi-l">Notas</span><b class="fi-nota">' + esc(r.nota) + '</b></div></div>' : '');
+    var pgBox = $('d-pagos');
+    pgBox.hidden = !pg.length;
+    pgBox.innerHTML = pg.length ? '<p class="eyebrow" style="margin:0 0 6px">Pagos registrados</p><ul class="pagos">' + pg.map(function(p){ var act = p.estado === 'activo'; return '<li class="' + (act ? '' : 'anulado') + '"><span><b class="num">' + plata(p.monto) + '</b> · ' + esc(p.concepto) + ' · ' + esc(p.medio) + ' · ' + corto(p.fecha) + (p.recibo ? ' · ' + esc(p.recibo) : '') + (act ? '' : ' · ' + esc(p.estado)) + '</span>' + (act && S.edit ? '<button type="button" class="btn sm dan" data-anular="' + esc(p.id) + '" data-critico>Anular</button>' : '') + '</li>'; }).join('') + '</ul>' : '';
+    dTab('info');
+  } else { info.hidden = true; $('d-pagos').hidden = true; $('dlg-sub').hidden = true; }
   var tel = (r && r.tel || '').replace(/\D/g, '');
   $('d-wa').hidden = !(r && tel.length >= 8);
   if (tel) $('d-wa').href = 'https://wa.me/' + tel;
   $('d-cancel').hidden = !(r && S.edit);
   $('d-rec').hidden = !r; $('d-bien').hidden = !r;
   $('d-del').hidden = !(r && S.edit);
-  $('d-cancel').textContent = r && r.estado === 'cancelada' ? 'Reactivar' : 'Cancelar reserva';
+  $('d-cancel').innerHTML = ic(r && r.estado === 'cancelada' ? 'refresh' : 'ban', 16) + (r && r.estado === 'cancelada' ? 'Reactivar reserva' : 'Cancelar reserva');
   $('d-danger').hidden = true;
+  document.querySelectorAll('#d-tabs [data-dtab="editar"],#d-tabs [data-dtab="mas"]').forEach(function(b){ b.hidden = !S.edit; });
+  $('d-tabs').classList.toggle('solo', !S.edit);
   var ro = !S.edit;
   ['r-cab','r-in','r-out','r-name','r-tel','r-pers','r-src','r-total','r-sena','r-nota','r-medio'].forEach(function(id){ $(id).disabled = ro; });
   $('r-sena').disabled = ro || !!r;
   document.querySelectorAll('#seg button').forEach(function(b){ b.disabled = ro; });
-  $('d-save').hidden = ro;
+  $('d-save').hidden = ro || S.dtab !== 'editar';
   actualizarForm();
   document.querySelectorAll('.sync-inline').forEach(function(x){ x.hidden = true; });
   var dl = $('dlg');
   if (dl.showModal) { if (!dl.open) dl.showModal(); } else dl.setAttribute('open', '');
   if (nuevo && !ro) setTimeout(function(){ $('r-name').focus(); }, 50);
 }
+/* Pestañas de la ficha: Información · Editar reserva · Más opciones */
+function dTab(k){
+  S.dtab = k;
+  var ids = { info: 'dp-info', editar: 'd-edit', mas: 'd-more' };
+  Object.keys(ids).forEach(function(x){ $(ids[x]).hidden = x !== k; });
+  document.querySelectorAll('#d-tabs [data-dtab]').forEach(function(b){ b.setAttribute('aria-selected', String(b.getAttribute('data-dtab') === k)); });
+  $('d-save').hidden = !S.edit || k !== 'editar';
+  if (k !== 'mas') $('d-danger').hidden = true;
+  $('dlg-b').scrollTop = 0;
+}
+$('d-tabs').addEventListener('click', function(ev){ var b = ev.target.closest('[data-dtab]'); if (b) dTab(b.getAttribute('data-dtab')); });
 function cerrar(){ var dl = $('dlg'); if (dl.close) dl.close(); else dl.removeAttribute('open'); }
 function actualizarForm(){
   document.querySelectorAll('#seg button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-st') === S.curSt)); });
