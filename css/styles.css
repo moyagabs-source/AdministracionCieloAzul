@@ -65,6 +65,8 @@ main{max-width:1200px;margin:0 auto;padding:20px 16px 120px;display:flex;flex-di
 
 /* Cabañas */
 .cabins{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+/* En computadora: dos renglones de cuatro cabañas */
+@media (min-width:1081px){.cabins{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}}
 .cab{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
 .cab.dim{background:var(--sunken);border-style:dashed}
 .ph{position:relative;aspect-ratio:16/10;max-width:100%;background:var(--sky);display:flex;align-items:flex-end;padding:10px;overflow:hidden}
