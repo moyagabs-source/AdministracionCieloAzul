@@ -400,6 +400,7 @@ function irA(v){
   render();
 }
 window.addEventListener('hashchange', function(){ irA(location.hash.slice(1)); });
+var _rz; window.addEventListener('resize', function(){ clearTimeout(_rz); _rz = setTimeout(function(){ if (S.view === 'calendario') renderCal(); }, 150); });
 
 /* ---------- Render ---------- */
 function render(){
@@ -504,8 +505,8 @@ function renderCal(){
     '<div class="cs"><b class="num">' + ocupadas + '<small>/' + (nd * CAB.length) + '</small></b><span>noches ocupadas</span></div>' +
     '<div class="cs"><b class="num">' + pct + '%</b><span>ocupación</span><i class="meter"><i style="width:' + pct + '%"></i></i></div>' +
     '<div class="cs"><b class="num" style="font-size:22px">' + plata(ingreso) + '</b><span>total de las estadías del mes</span></div>';
-  var COLW = 48, cal = $('cal');
-  cal.style.gridTemplateColumns = '188px repeat(' + nd + ', ' + COLW + 'px)';
+  var movil = window.innerWidth <= 760, COLW = movil ? 44 : 48, cal = $('cal');
+  cal.style.gridTemplateColumns = (movil ? '118px' : '188px') + ' repeat(' + nd + ', ' + COLW + 'px)';
   var h = '<div class="lab corner"><span>Cabaña</span><small>' + MES[m - 1].slice(0, 3) + ' ' + y + '</small></div>';
   for (var i = 0; i < nd; i++) {
     var wd = new Date((first + i) * 86400000).getUTCDay();
@@ -514,7 +515,7 @@ function renderCal(){
   h += '<div class="lab libres-l"><b>Libres por noche</b><span>de ' + CAB.length + ' cabañas</span></div>';
   libresDia.forEach(function(n, i){ var wd = new Date((first + i) * 86400000).getUTCDay(); var nivel = n === 0 ? 'full' : n <= 2 ? 'low' : ''; h += '<div class="fr ' + nivel + (wd === 1 ? ' lun' : '') + (first + i === tn ? ' tdc' : '') + '" title="' + n + ' cabañas libres el ' + corto(iso(first + i)) + '"><span>' + n + '</span></div>'; });
   CAB.forEach(function(c){
-    h += '<div class="lab" style="--cc:' + c.col + ';--ct:' + c.tint + '"><b class="cabh">' + chipCab(c.id, esc(c.n || 'Cabaña 0')) + '</b><span>' + c.cap + ' pers. · <b class="num" style="font-size:12px">' + porCab[c.id] + '</b> noches</span></div>';
+    h += '<div class="lab" style="--cc:' + c.col + ';--ct:' + c.tint + '"><b class="cabh">' + chipCab(c.id, esc(c.n || 'Cabaña 0')) + '</b><span>' + (movil ? porCab[c.id] + ' noches' : c.cap + ' pers. · <b class="num" style="font-size:12px">' + porCab[c.id] + '</b> noches') + '</span></div>';
     var bk = act.filter(function(r){ return r.cabin === c.id && dn(r.from) < last && dn(r.to) > first; });
     var dd = 0;
     while (dd < nd) {

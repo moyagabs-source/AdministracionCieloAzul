@@ -218,8 +218,7 @@ dialog.small{width:min(420px,calc(100% - 24px));height:fit-content;max-height:ca
   dialog.small .dlg{height:auto}
   .dlg{max-height:100dvh;height:100%}
   .dlg-b{flex:1}
-  .row{grid-template-columns:54px minmax(0,1fr);}
-  .row .rt{grid-column:2;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;text-align:left}
+
 }
 @media (prefers-reduced-motion:no-preference){ .row,.btn,.chip{transition:border-color .15s, background .15s} }
 
@@ -419,11 +418,96 @@ label.ht{gap:6px}
 .dlg-h .eyebrow::before,.rc-info .eyebrow::before,#d-info .eyebrow::before,.hist+.eyebrow::before{display:none}
 .gate-card .field label.ht{justify-content:flex-start}
 @media (max-width:760px){
-  .row{grid-template-columns:54px minmax(0,1fr) 20px}
-  .row .chev{grid-row:1 / span 2}
-  .row .rt{grid-column:2}
   h1.ht .ic{width:38px;height:38px;padding:6px}
 }
 .kpi-money{font-size:clamp(17px,1.4vw,22px);white-space:nowrap}
 .kpi-t b{overflow-wrap:normal;white-space:nowrap}
 @media (max-width:560px){ .kpi.wide{grid-column:1 / -1} .kpi-money{font-size:24px} }
+
+/* ===== Celular: barrido de optimización ===== */
+@media (max-width:760px){
+  /* Lista de reservas: fecha | datos | flecha, con el estado debajo de los datos */
+  .row{grid-template-columns:54px minmax(0,1fr) 18px;grid-template-rows:auto auto;gap:6px 12px;padding:12px}
+  .row .date{grid-column:1;grid-row:1 / span 2;align-self:start}
+  .row .who{grid-column:2;grid-row:1}
+  .row .rt{grid-column:2;grid-row:2;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:6px 10px;text-align:left}
+  .row .chev{grid-column:3;grid-row:1 / span 2;align-self:center}
+  .row .who strong{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
+  .row .who span{white-space:normal;overflow:visible;text-overflow:clip}
+  /* Resumen: 2 columnas compactas */
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpi{padding:10px 12px;gap:10px;min-height:72px}
+  .kpi-ic{width:34px;height:34px;border-radius:10px}
+  .kpi-ic .ic{width:18px;height:18px}
+  .kpi-t b{font-size:24px}
+  .kpi-t>span{font-size:12px;line-height:1.15}
+  .kpi.wide{grid-column:1 / -1}
+  .kpi-money{font-size:24px}
+  /* Buscador de disponibilidad */
+  .chk{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .chk .field:nth-child(3){grid-column:1 / -1}
+  .chk .qf{grid-column:1 / -1}
+  .chk .qf label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .quick{min-height:0}
+  .quick .chip{flex:1 1 0;justify-content:center;min-height:44px}
+  .chk-head p{font-size:15px}
+  .chk-res b{font-size:18px}
+  .chk-res span{font-size:13px}
+  .dcards{grid-template-columns:1fr}
+  .dcard{flex-direction:row;flex-wrap:wrap;align-items:center}
+  .dcard .dc-top{flex:1 1 100%}
+  .dcard .dc-mid{flex:1 1 auto}
+  .dcard .btn{flex:0 0 auto}
+  /* Calendario: más días visibles */
+  .calsum{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .cs{padding:10px 12px}
+  .cs b{font-size:22px}
+  .cs span{font-size:12px}
+  .cal .lab{padding:6px 8px 6px 10px;min-height:56px;box-shadow:inset 4px 0 0 var(--cc,transparent)}
+  .cal .lab .cabh{font-size:13px;gap:6px}
+  .cal .lab .cb{min-width:20px;height:20px;font-size:12px;border-radius:6px}
+  .cal .lab>span{font-size:11px}
+  .cal .lab.corner span{font-size:11px}
+  .cal .c{min-height:56px}
+  .cal .bar{min-height:40px;margin:8px 2px;padding:0 6px 0 5px;gap:6px}
+  .cal .bar .av{width:22px;height:22px;font-size:12px;margin-left:2px}
+  .cal .bar .bt b{font-size:12px}
+  .cal .bar .bt small{font-size:10px}
+  .calnav{padding:4px}
+  .calnav .btn{min-width:40px;min-height:40px}
+  .calnav h2{font-size:17px}
+  .calfoot p{font-size:14px}
+  /* Recibos: pestañas parejas y formulario antes de la vista previa */
+  .tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .tabs button{justify-content:center;padding:0 10px;font-size:14px}
+  .rc-grid .prev{order:1}
+  .rc-pick .field{flex:1 1 100%}
+  .acts .btn{flex:1 1 auto;justify-content:center}
+  /* Títulos y espaciado */
+  .head h1{font-size:26px}
+  main{padding:16px 14px 120px;gap:16px}
+  .panel{padding:16px;border-radius:14px}
+  .cab-b{padding:12px 14px}
+  .cab-a .btn{font-size:13px;padding:0 8px}
+  /* Ficha de reserva: acciones a ancho completo en pares */
+  #d-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  #d-acts .btn{justify-content:center;min-height:44px;padding:0 8px;font-size:13px}
+  .kv{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .kv>div{padding:8px 10px}
+  .kv b{font-size:15px}
+  /* Excel vinculado */
+  .cf-wrap .kv{grid-template-columns:1fr}
+}
+@media (max-width:400px){
+  .botnav a,.botnav button{font-size:10px}
+  .brand small{font-size:15px;padding-left:8px}
+}
+@media (max-width:760px){
+  .field input[type=date]{padding-left:10px;padding-right:34px;font-size:15px;background-position:right 9px center;background-size:18px 18px;letter-spacing:-.01em}
+  .tabs button{font-size:13px;min-height:48px;line-height:1.1}
+  .tabs button .ic{width:16px;height:16px}
+}
+@media (max-width:370px){
+  .chk .field:nth-child(1),.chk .field:nth-child(2){grid-column:1 / -1}
+  .field.big input[type=date]{font-size:17px}
+}
