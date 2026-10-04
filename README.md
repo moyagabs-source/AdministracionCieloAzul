@@ -20,6 +20,10 @@ Navegador (Vercel) ──fetch──▶ Apps Script /exec ──▶ Google Sheet
 | `apps-script/Codigo.gs` | Código del backend. Se pega en Apps Script; no corre en Vercel |
 | `apps-script/appsscript.json` | Manifiesto opcional del Apps Script |
 
+## Cómo se anota una reserva
+
+El botón **+ Nueva reserva** abre un asistente de 4 pasos, pensado para usarse desde el celular sin conocimientos previos: fechas y personas → cabaña (solo se muestran las libres) → nombre y teléfono → total y seña. Al final muestra un resumen y el botón **Guardar reserva**. El estado (Por confirmar, Sin seña, Con seña, Pagada) se define solo según lo que se cargó. Para editar una reserva existente se usa la ficha completa.
+
 ## Cómo usa la planilla
 
 La planilla actual se conserva tal cual. El sistema agrega cuatro pestañas al final (las crea solo la primera vez):

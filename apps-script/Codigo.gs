@@ -112,14 +112,14 @@ function estadiasDeLibro(nombresHojas, leerFilas, desdeISO) {
    ===================================================================== */
 var VERSION = '1.0.0';
 var CABANAS = [
+  { id: 0, nombre: 'Cabaña 0', capacidad: 4, precio: 0 },
   { id: 1, nombre: 'Luna', capacidad: 3, precio: 70000 },
   { id: 2, nombre: 'Marte', capacidad: 10, precio: 215000 },
   { id: 3, nombre: 'Júpiter', capacidad: 6, precio: 125000 },
   { id: 4, nombre: 'Tierra', capacidad: 6, precio: 125000 },
   { id: 5, nombre: 'Sol', capacidad: 5, precio: 115000 },
   { id: 6, nombre: 'Saturno', capacidad: 5, precio: 115000 },
-  { id: 7, nombre: 'Escorpio', capacidad: 12, precio: 225000 },
-  { id: 0, nombre: 'Cabaña 0', capacidad: 4, precio: 0 }
+  { id: 7, nombre: 'Escorpio', capacidad: 12, precio: 225000 }
 ];
 var ESTADOS = ['porconfirmar', 'sinpago', 'sena', 'pagada', 'cancelada'];
 var ESTADO_TXT = { porconfirmar: 'Por confirmar', sinpago: 'Confirmada sin pago', sena: 'Con seña', pagada: 'Pagada', cancelada: 'Cancelada' };

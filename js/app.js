@@ -6,14 +6,14 @@
 var DRIVE_FILE = '1BjmyM7fHC6nOWI0z3AB0s3kEesXsRpRNT6MRz6Qogx4';
 var WA_PROPIO = '5491138167697';
 var CAB = [
+  {id:0,n:'',cap:'4',max:4,p:0,col:'#55712A',tint:'#E7EFDA',fg:'#FFFFFF'},
   {id:1,n:'Luna',cap:'2–3',max:3,p:70000,col:'#4F5F86',tint:'#E6EAF4',fg:'#FFFFFF'},
   {id:2,n:'Marte',cap:'9–10',max:10,p:215000,col:'#B03F22',tint:'#F9E4DD',fg:'#FFFFFF'},
   {id:3,n:'Júpiter',cap:'6',max:6,p:125000,col:'#9A5B1E',tint:'#F6E8D8',fg:'#FFFFFF'},
   {id:4,n:'Tierra',cap:'6',max:6,p:125000,col:'#17705F',tint:'#DDF1EC',fg:'#FFFFFF'},
   {id:5,n:'Sol',cap:'5',max:5,p:115000,col:'#E0A100',tint:'#FFF3CF',fg:'#2A1C00'},
   {id:6,n:'Saturno',cap:'5',max:5,p:115000,col:'#6E4FA0',tint:'#ECE5F6',fg:'#FFFFFF'},
-  {id:7,n:'Escorpio',cap:'12',max:12,p:225000,col:'#962858',tint:'#F6E0EA',fg:'#FFFFFF'},
-  {id:0,n:'',cap:'4',max:4,p:0,col:'#55712A',tint:'#E7EFDA',fg:'#FFFFFF'}
+  {id:7,n:'Escorpio',cap:'12',max:12,p:225000,col:'#962858',tint:'#F6E0EA',fg:'#FFFFFF'}
 ];
 /* Ilustraciones vectoriales por cabaña (viewBox 320x200) */
 function ilu(c){
@@ -540,6 +540,7 @@ function renderExcel(){
 /* ---------- Diálogo ---------- */
 function opcionesCab(){ $('r-cab').innerHTML = CAB.map(function(c){ return '<option value="' + c.id + '">' + esc(cabN(c.id)) + ' (' + c.cap + ')</option>'; }).join(''); }
 function abrir(r, pre){
+  if (!r) { if (!S.edit) { toast('Sin conexión con Google Sheets: no se pueden anotar reservas ahora.'); return; } return wAbrir(pre); }
   S.cur = r || null;
   var nuevo = !r; pre = pre || {};
   $('dlg-t').textContent = nuevo ? 'Nueva reserva' : r.huesped;
@@ -682,6 +683,131 @@ function pedirEliminar(){
     } catch (e) {}
   };
   $('no-del').onclick = function(){ box.hidden = true; };
+}
+
+/* ---------- Asistente de reserva nueva (4 pasos) ---------- */
+var W = { paso: 1, d: {}, clave: null, mostrarNo: false };
+var W_TIT = ['', '¿Cuándo vienen y cuántos son?', '¿En qué cabaña?', '¿Quién reserva?', '¿Cómo pagan?'];
+function wAbrir(pre){
+  pre = pre || {};
+  var t = hoy();
+  W.paso = 1; W.clave = nuevaClave(); W.mostrarNo = false;
+  W.d = { from: pre.from || t, to: pre.to || iso(dn(pre.from || t) + 1), pers: pre.pers || 2, cabin: pre.cabin != null ? pre.cabin : null, huesped: '', tel: '', origen: 'WhatsApp', nota: '', total: 0, tieneSena: null, sena: 0, medio: 'Transferencia', confirmada: true };
+  if (W.d.to <= W.d.from) W.d.to = iso(dn(W.d.from) + 1);
+  $('w-in').value = W.d.from; $('w-out').value = W.d.to; $('w-pers').value = String(W.d.pers);
+  $('w-name').value = ''; $('w-tel').value = ''; $('w-src').value = 'WhatsApp'; $('w-nota').value = ''; $('w-total').value = ''; $('w-sena').value = ''; $('w-medio').value = 'Transferencia';
+  wIr(1);
+  var dl = $('dlgw'); if (dl.showModal) { if (!dl.open) dl.showModal(); } else dl.setAttribute('open', '');
+}
+function wCerrar(){ var dl = $('dlgw'); if (dl.close) dl.close(); else dl.removeAttribute('open'); }
+function wIr(p){
+  W.paso = p;
+  for (var i = 1; i <= 5; i++) $('w-p' + i).hidden = i !== p;
+  $('w-tit').textContent = p === 5 ? 'Revisá y guardá' : W_TIT[p];
+  $('w-prog').textContent = p === 5 ? 'Último paso' : 'Paso ' + p + ' de 4';
+  $('w-dots').innerHTML = [1, 2, 3, 4].map(function(i){ return '<i class="' + (i < p ? 'ok' : i === p ? 'cur' : '') + '"></i>'; }).join('');
+  $('w-back').hidden = p === 1;
+  $('w-next').hidden = p === 5; $('w-save').hidden = p !== 5;
+  $('w-err').hidden = true;
+  wPintar();
+  setTimeout(function(){ var f = { 1: 'w-in', 3: 'w-name', 4: 'w-total' }[p]; if (f) try { $(f).focus(); } catch (e) {} }, 60);
+  try { $('dlgw-b').scrollTop = 0; } catch (e) {}
+}
+function wError(msg){ var e = $('w-err'); e.textContent = msg; e.hidden = false; }
+function wLeerPaso(){
+  var d = W.d;
+  if (W.paso === 1) { d.from = $('w-in').value; d.to = $('w-out').value; d.pers = parseInt($('w-pers').value, 10) || 0; }
+  if (W.paso === 3) { d.huesped = $('w-name').value.trim(); d.tel = $('w-tel').value.trim(); d.origen = $('w-src').value; d.nota = $('w-nota').value.trim(); }
+  if (W.paso === 4) { d.total = parseInt($('w-total').value, 10) || 0; d.sena = d.tieneSena ? (parseInt($('w-sena').value, 10) || 0) : 0; d.medio = $('w-medio').value; }
+}
+function wValidar(){
+  var d = W.d, n = dn(d.to) - dn(d.from);
+  if (W.paso === 1) {
+    if (!d.from || !d.to) return 'Elegí el día de llegada y el de salida.';
+    if (d.to <= d.from) return 'La salida tiene que ser después de la llegada.';
+    if (!(d.pers >= 1)) return 'Indicá cuántas personas vienen.';
+  }
+  if (W.paso === 2 && (d.cabin == null || !dispo(d.from, d.to, d.pers).some(function(x){ return x.c.id === d.cabin && x.libre; }))) return 'Tocá una cabaña libre para elegirla.';
+  if (W.paso === 3 && !d.huesped) return 'Escribí el nombre de quien reserva.';
+  if (W.paso === 4) {
+    if (d.tieneSena == null) return '¿Dejó seña? Elegí Sí o No.';
+    if (d.tieneSena && !(d.sena > 0)) return 'Escribí cuánto dejó de seña.';
+    if (d.total && d.sena > d.total) return 'La seña no puede ser mayor que el total.';
+  }
+  return '';
+}
+function wSiguiente(){
+  wLeerPaso();
+  var err = wValidar(); if (err) { wError(err); return; }
+  if (W.paso === 1) { var ok = dispo(W.d.from, W.d.to, W.d.pers).filter(function(x){ return x.libre; }); if (W.d.cabin != null && !ok.some(function(x){ return x.c.id === W.d.cabin; })) W.d.cabin = null; if (W.d.cabin == null && ok.length === 1) W.d.cabin = ok[0].c.id; }
+  if (W.paso === 3) { var pr = precio(W.d.cabin), n = dn(W.d.to) - dn(W.d.from); if (!$('w-total').value && pr) $('w-total').value = pr * n; }
+  wIr(W.paso + 1);
+}
+function wPintar(){
+  var d = W.d, n = (d.from && d.to && d.to > d.from) ? dn(d.to) - dn(d.from) : 0;
+  if (W.paso === 1) { $('w-noches').textContent = n ? (n === 1 ? 'Es 1 noche' : 'Son ' + n + ' noches') + ' · llegan el ' + largo(d.from) + ' y se van el ' + largo(d.to) : 'Elegí las dos fechas'; }
+  if (W.paso === 2) {
+    var ds = dispo(d.from, d.to, d.pers), ls = ds.filter(function(x){ return x.libre; }), no = ds.filter(function(x){ return !x.libre; });
+    $('w-res').textContent = (ls.length ? ls.length + (ls.length === 1 ? ' cabaña libre' : ' cabañas libres') : 'No hay cabañas libres') + ' para ' + d.pers + (d.pers === 1 ? ' persona' : ' personas') + ', ' + n + (n === 1 ? ' noche' : ' noches') + '.';
+    $('w-cabs').innerHTML = ls.map(function(x){ var c = x.c, pr = precio(c.id), sel = d.cabin === c.id;
+      return '<button type="button" class="wcab' + (sel ? ' sel' : '') + '" data-wcab="' + c.id + '" style="--cc:' + c.col + ';--ct:' + c.tint + '" aria-pressed="' + sel + '">' + chipCab(c.id) + '<span class="wc-t"><b>' + esc(c.n || 'Cabaña 0') + '</b><small>Hasta ' + c.max + ' personas' + (pr ? ' · ' + plata(pr * n) + ' en total' : '') + '</small></span>' + (sel ? '<span class="wc-ok">Elegida</span>' : '') + '</button>'; }).join('') || '<div class="empty">Probá con otras fechas o menos personas.</div>';
+    $('w-no').innerHTML = no.length ? '<button type="button" class="linkbtn" id="w-verno">' + (W.mostrarNo ? 'Ocultar' : 'Ver') + ' las ' + no.length + ' que no están disponibles</button>' + (W.mostrarNo ? '<p class="dno">' + no.map(function(x){ return '<span>' + chipCab(x.c.id) + esc(x.c.n || 'Cabaña 0') + ' <em>' + (x.busy ? 'ocupada' : 'hasta ' + x.c.max + ' pers.') + '</em></span>'; }).join('') + '</p>' : '') : '';
+  }
+  if (W.paso === 4) {
+    var pr = precio(d.cabin);
+    $('w-tarifa').textContent = pr ? 'La tarifa de ' + cabN(d.cabin) + ' es ' + plata(pr) + ' por noche: ' + plata(pr * n) + ' por ' + n + (n === 1 ? ' noche' : ' noches') + '.' : 'Esta cabaña no tiene tarifa cargada; escribí el total.';
+    $('w-si').setAttribute('aria-pressed', String(d.tieneSena === true)); $('w-nosena').setAttribute('aria-pressed', String(d.tieneSena === false));
+    $('w-senabox').hidden = d.tieneSena !== true;
+    $('w-conf').hidden = d.tieneSena !== false;
+    $('w-confsi').setAttribute('aria-pressed', String(d.confirmada)); $('w-confno').setAttribute('aria-pressed', String(!d.confirmada));
+    var tot = parseInt($('w-total').value, 10) || 0, se = d.tieneSena ? (parseInt($('w-sena').value, 10) || 0) : 0;
+    $('w-saldo').textContent = tot ? 'Queda un saldo de ' + plata(Math.max(tot - se, 0)) + ' para cobrar.' : '';
+  }
+  if (W.paso === 5) {
+    var est = d.sena > 0 ? 'sena' : (d.confirmada ? 'sinpago' : 'porconfirmar');
+    if (d.total && d.sena >= d.total) est = 'pagada';
+    var c = cabC(d.cabin);
+    $('w-sum').innerHTML =
+      '<div class="ws-cab" style="--cc:' + c.col + ';--ct:' + c.tint + '">' + chipCab(d.cabin) + '<b>' + esc(cabN(d.cabin)) + '</b></div>' +
+      '<dl class="ws">' +
+      '<dt>Huésped</dt><dd>' + esc(d.huesped) + (d.tel ? ' · ' + esc(d.tel) : '') + '</dd>' +
+      '<dt>Llegada</dt><dd>' + largo(d.from) + ', desde las 15:00</dd>' +
+      '<dt>Salida</dt><dd>' + largo(d.to) + ', hasta las 10:00</dd>' +
+      '<dt>Personas</dt><dd>' + d.pers + ' · ' + n + (n === 1 ? ' noche' : ' noches') + '</dd>' +
+      '<dt>Total</dt><dd>' + (d.total ? plata(d.total) : 'sin cargar') + '</dd>' +
+      '<dt>Seña</dt><dd>' + (d.sena ? plata(d.sena) + ' por ' + esc(d.medio) : 'sin seña') + '</dd>' +
+      '<dt>Saldo</dt><dd>' + (d.total ? plata(Math.max(d.total - d.sena, 0)) : '—') + '</dd>' +
+      '<dt>Queda como</dt><dd><span class="pill s-' + est + '">' + ST[est] + '</span></dd>' +
+      (d.nota ? '<dt>Notas</dt><dd>' + esc(d.nota) + '</dd>' : '') + '</dl>';
+    W.estado = est;
+  }
+}
+async function wGuardar(){
+  if (!S.edit) { wError('Sin conexión con Google Sheets: no se puede guardar ahora.'); return; }
+  var d = W.d;
+  var cx = cruces(d.cabin, d.from, d.to);
+  if (cx.length) { wError(cabN(d.cabin) + ' ya está ocupada esas fechas por ' + cx[0].huesped + '. Volvé al paso 2 y elegí otra.'); return; }
+  var r = { cabin: d.cabin, huesped: d.huesped, tel: d.tel, personas: d.pers, from: d.from, to: d.to, origen: d.origen, estado: W.estado, total: d.total, nota: d.nota, sena: d.sena, medio: d.medio, fechaSena: hoy() };
+  try {
+    await escribir('crearReserva', { clave: W.clave, reserva: r }, 'Reserva guardada: ' + d.huesped + ' en ' + cabN(d.cabin) + ', ' + corto(d.from) + ' → ' + corto(d.to) + '.');
+    wCerrar();
+  } catch (e) { wError('No se pudo guardar: ' + e.message); }
+}
+function initAsistente(){
+  $('w-next').addEventListener('click', wSiguiente);
+  $('w-back').addEventListener('click', function(){ wLeerPaso(); wIr(W.paso - 1); });
+  $('w-save').addEventListener('click', wGuardar);
+  $('dlgw-x').addEventListener('click', wCerrar); $('w-cancel').addEventListener('click', wCerrar);
+  $('dlgw-form').addEventListener('submit', function(e){ e.preventDefault(); if (W.paso < 5) wSiguiente(); else wGuardar(); });
+  ['w-in', 'w-out', 'w-pers'].forEach(function(id){ $(id).addEventListener('input', function(){ if (id === 'w-in' && $('w-in').value && $('w-out').value <= $('w-in').value) $('w-out').value = iso(dn($('w-in').value) + 1); wLeerPaso(); wPintar(); }); });
+  ['w-total', 'w-sena'].forEach(function(id){ $(id).addEventListener('input', function(){ wLeerPaso(); wPintar(); }); });
+  $('w-si').addEventListener('click', function(){ W.d.tieneSena = true; wPintar(); setTimeout(function(){ $('w-sena').focus(); }, 30); });
+  $('w-nosena').addEventListener('click', function(){ W.d.tieneSena = false; W.d.sena = 0; $('w-sena').value = ''; wPintar(); });
+  $('w-confsi').addEventListener('click', function(){ W.d.confirmada = true; wPintar(); });
+  $('w-confno').addEventListener('click', function(){ W.d.confirmada = false; wPintar(); });
+  $('w-cabs').addEventListener('click', function(e){ var b = e.target.closest('[data-wcab]'); if (!b) return; W.d.cabin = +b.getAttribute('data-wcab'); $('w-err').hidden = true; wPintar(); });
+  $('w-no').addEventListener('click', function(e){ if (e.target.id === 'w-verno') { W.mostrarNo = !W.mostrarNo; wPintar(); } });
+  $('w-masdatos').addEventListener('click', function(){ $('w-extra').hidden = !$('w-extra').hidden; $('w-masdatos').textContent = $('w-extra').hidden ? 'Agregar cómo llegó o una nota' : 'Ocultar'; });
 }
 
 /* ---------- Eventos ---------- */
@@ -850,9 +976,8 @@ async function dibujarRecibo(){
   [['Total de la estadía', plata(c.total)], ['Pagado a la fecha', plata(c.pagado)], ['Saldo pendiente', plata(c.saldo)]].forEach(function(k, i){ var cx = 70 + (W - 140) / 3 * i + 30; txt(x, k[0], cx, yy + 54, '600 26px ' + FB, '#4D5E72'); txt(x, k[1], cx, yy + 112, '700 42px ' + FD, i === 2 && c.saldo > 0 ? '#9A2F12' : '#0F2237'); });
   yy += 190;
   if (c.nota) { var nt = 'Nota: ' + c.nota; txt(x, nt, 70, yy, ajustar(x, nt, W - 140, '400', 26, FB), '#33475E'); }
-  txt(x, '¡Gracias por elegir Cabañas Cielo Azul!', W / 2, H - 84, '700 34px ' + FD, '#123F7A', 'center');
-  txt(x, 'San Lorenzo, Salta · WhatsApp +54 9 11 3816-7697', W / 2, H - 46, '400 25px ' + FB, '#33475E', 'center');
-  txt(x, 'Comprobante simbólico de pago. No válido como factura.', W / 2, H - 16, '400 21px ' + FB, '#4D5E72', 'center');
+  txt(x, '¡Gracias por elegir Cabañas Cielo Azul!', W / 2, H - 70, '700 34px ' + FD, '#123F7A', 'center');
+  txt(x, 'San Lorenzo, Salta · WhatsApp +54 9 11 3816-7697', W / 2, H - 30, '400 25px ' + FB, '#33475E', 'center');
   x.restore();
 }
 
@@ -943,6 +1068,7 @@ function initRecibos(){
 opcionesCab();
 initRecibos();
 initConexion();
+initAsistente();
 irA(location.hash.slice(1) || 'hoy');
 if (claveSesion()) { document.body.classList.remove('bloqueado'); cargar(); } else bloquear_pantalla('');
 setInterval(function(){ if (document.visibilityState === 'visible' && !$('dlg').open && !S.ocupado && claveSesion()) cargar(true); }, 60000);
