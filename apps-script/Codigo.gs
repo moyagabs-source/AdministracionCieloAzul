@@ -3,7 +3,7 @@
  * Backend en Google Apps Script: lee y escribe la planilla de Google Sheets.
  *
  * La pestaña BD_RESERVAS es el registro principal (una fila por reserva, con ID único RES-000001).
- * BD_PAGOS guarda cada pago/seña (PAG-000001), BD_RECIBOS cada recibo emitido (REC-000001) y BD_TARIFAS el precio por noche.
+ * BD_PAGOS guarda cada pago/seña (PAG-000001), BD_RECIBOS cada recibo emitido (REC-000001) y BD_TARIFAS el precio por noche y la capacidad de cada cabaña.
  * Las hojas mensuales (ENERO 2027, etc.) se reescriben solas en el bloque de cada cabaña: una "x" por noche,
  * "?" si está por confirmar, teléfono, valor, seña, total, ocupantes y notas. La columna "A cobrar" conserva su fórmula.
  * Antes de cada cambio se incorpora lo que se haya escrito a mano en esas hojas, para no perderlo.
@@ -110,7 +110,7 @@ function estadiasDeLibro(nombresHojas, leerFilas, desdeISO) {
 /* =====================================================================
    NÚCLEO DEL SISTEMA (no depende de Google: trabaja sobre un "adaptador")
    ===================================================================== */
-var VERSION = '1.0.0';
+var VERSION = '1.1.0';
 var CABANAS = [
   { id: 0, nombre: 'Estrella', capacidad: 4, precio: 0 },
   { id: 1, nombre: 'Luna', capacidad: 3, precio: 70000 },
@@ -128,7 +128,7 @@ var H_RES = 'BD_RESERVAS', H_PAG = 'BD_PAGOS', H_REC = 'BD_RECIBOS', H_TAR = 'BD
 var ENC_RES = ['ID', 'Cabaña', 'Huésped', 'Teléfono', 'Personas', 'Llegada', 'Salida', 'Origen', 'Estado', 'Total', 'Pagado', 'Saldo', 'Notas', 'Creada', 'Editada', 'Fuente', 'Clave'];
 var ENC_PAG = ['ID', 'Reserva', 'Fecha', 'Monto', 'Medio', 'Concepto', 'Notas', 'Recibo', 'Estado', 'Creado', 'Clave'];
 var ENC_REC = ['N°', 'Fecha', 'Reserva', 'Pago', 'Huésped', 'Cabaña', 'Concepto', 'Medio', 'Monto', 'Total estadía', 'Pagado a la fecha', 'Saldo', 'Notas', 'Creado', 'Clave'];
-var ENC_TAR = ['Cabaña', 'Nombre', 'Capacidad', 'Precio por noche'];
+var ENC_TAR = ['Cabaña', 'Nombre', 'Capacidad', 'Precio por noche', 'Calendario Airbnb (iCal)'];
 // columnas que deben quedar como texto (fechas, IDs, teléfonos) para que Sheets no las convierta
 var TEXTO_RES = [1, 4, 6, 7, 14, 15, 17], TEXTO_PAG = [1, 2, 3, 8, 10, 11], TEXTO_REC = [1, 2, 3, 4, 14, 15];
 
@@ -155,7 +155,8 @@ Sistema.prototype.asegurar = function () {
   [[H_RES, ENC_RES, TEXTO_RES], [H_PAG, ENC_PAG, TEXTO_PAG], [H_REC, ENC_REC, TEXTO_REC], [H_TAR, ENC_TAR, []]].forEach(function (h) {
     if (!A.existe(h[0])) { A.crear(h[0], h[1], h[2]); creadas.push(h[0]); }
   });
-  if (creadas.indexOf(H_TAR) >= 0) A.agregar(H_TAR, CABANAS.map(function (c) { return [c.id, c.nombre, c.capacidad, c.precio]; }));
+  if (creadas.indexOf(H_TAR) >= 0) A.agregar(H_TAR, CABANAS.map(function (c) { return [c.id, c.nombre, c.capacidad, c.precio, '']; }));
+  else if (!txt(A.leer(H_TAR, 1, 1, 1, ENC_TAR.length)[0][4])) A.escribir(H_TAR, 1, 1, [ENC_TAR]);
   if (creadas.indexOf(H_RES) >= 0) this.importar('2000-01-01');
   return creadas;
 };
@@ -181,13 +182,14 @@ Sistema.prototype.leer = function () {
   var recibos = this._tabla(H_REC, ENC_REC.length).filter(function (f) { return txt(f[0]); }).map(function (f) {
     return { nro: txt(f[0]), fecha: iso(f[1]), reserva: txt(f[2]), pago: txt(f[3]), huesped: txt(f[4]), cabin: entero(f[5]), concepto: txt(f[6]), medio: txt(f[7]), monto: entero(f[8]), total: entero(f[9]), pagado: entero(f[10]), saldo: entero(f[11]), nota: txt(f[12]), creado: txt(f[13]), clave: txt(f[14]), _fila: f._fila };
   });
-  var tarifas = {};
-  this._tabla(H_TAR, 4).forEach(function (f) { if (txt(f[0]) !== '') tarifas[entero(f[0])] = entero(f[3]); });
-  return { reservas: reservas, pagos: pagos, recibos: recibos, tarifas: tarifas };
+  var tarifas = {}, capacidades = {}, airbnb = {};
+  this._tabla(H_TAR, ENC_TAR.length).forEach(function (f) { if (txt(f[0]) !== '') { tarifas[entero(f[0])] = entero(f[3]); if (entero(f[2]) > 0) capacidades[entero(f[0])] = entero(f[2]); if (txt(f[4])) airbnb[entero(f[0])] = txt(f[4]); } });
+  return { reservas: reservas, pagos: pagos, recibos: recibos, tarifas: tarifas, capacidades: capacidades, airbnb: airbnb };
 };
 Sistema.prototype.publico = function (d) {
   var limpio = function (o) { var x = {}; for (var k in o) if (k !== '_fila') x[k] = o[k]; return x; };
-  return { reservas: d.reservas.map(limpio), pagos: d.pagos.map(limpio), recibos: d.recibos.map(limpio), tarifas: d.tarifas,
+  return { reservas: d.reservas.map(limpio), pagos: d.pagos.map(limpio), recibos: d.recibos.map(limpio), tarifas: d.tarifas, capacidades: d.capacidades || {},
+    airbnb: { urls: d.airbnb || {}, ultima: propiedad('AIRBNB_ULTIMA') || '', resumen: (function () { try { return JSON.parse(propiedad('AIRBNB_RESUMEN') || 'null'); } catch (e) { return null; } })() },
     hoja: { id: this.A.id(), titulo: this.A.titulo(), url: 'https://docs.google.com/spreadsheets/d/' + this.A.id() + '/edit' }, leido: ahoraISO(), version: VERSION };
 };
 
@@ -324,15 +326,101 @@ Sistema.prototype.registrarRecibo = function (b) {
   return { recibo: this._recibo(d, b) };
 };
 
-/* ---------- tarifas ---------- */
-Sistema.prototype.guardarTarifa = function (cabin, precio) {
+/* ---------- tarifas y capacidad ---------- */
+// Guarda el precio por noche y/o la capacidad máxima (personas) de una cabaña en BD_TARIFAS.
+// Si un valor viene vacío, se conserva el que ya está en la planilla.
+Sistema.prototype.guardarTarifa = function (cabin, precio, capacidad) {
   var A = this.A, id = entero(cabin), c = CABANAS.filter(function (k) { return k.id === id; })[0];
   if (!c) throw SysError('Cabaña desconocida.', 'datos');
-  var filas = this._tabla(H_TAR, 4), f = filas.filter(function (x) { return entero(x[0]) === id && txt(x[0]) !== ''; })[0];
-  var v = [[id, c.nombre, c.capacidad, entero(precio)]];
+  var filas = this._tabla(H_TAR, ENC_TAR.length), f = filas.filter(function (x) { return entero(x[0]) === id && txt(x[0]) !== ''; })[0];
+  var cap = (capacidad === undefined || capacidad === null || txt(capacidad) === '') ? (f && entero(f[2]) > 0 ? entero(f[2]) : c.capacidad) : entero(capacidad);
+  if (!(cap >= 1 && cap <= 60)) throw SysError('La capacidad tiene que ser un número de personas entre 1 y 60.', 'datos');
+  var pre = (precio === undefined || precio === null || txt(precio) === '') ? (f ? entero(f[3]) : c.precio) : entero(precio);
+  if (pre < 0) throw SysError('El precio no puede ser negativo.', 'datos');
+  var v = [[id, c.nombre, cap, pre, f ? txt(f[4]) : '']];
   if (f) A.escribir(H_TAR, f._fila, 1, v); else A.agregar(H_TAR, v);
-  return { ok: true };
+  return { ok: true, cabin: id, precio: pre, capacidad: cap };
 };
+
+/* ---------- Airbnb (calendario iCal exportado desde cada anuncio) ---------- */
+// Airbnb no da acceso directo a la cuenta, pero cada anuncio exporta un calendario (.ics) con sus reservas.
+// Se guarda un enlace por cabaña en BD_TARIFAS y, al sincronizar, cada reserva del calendario se anota como
+// reserva del sistema (origen Airbnb, clave "airbnb:<código>"), se mueve si cambió de fechas y se cancela si desapareció.
+Sistema.prototype.guardarAirbnb = function (cabin, url) {
+  var A = this.A, id = entero(cabin), c = CABANAS.filter(function (k) { return k.id === id; })[0];
+  if (!c) throw SysError('Cabaña desconocida.', 'datos');
+  url = txt(url);
+  if (url && !/^https?:\/\/\S+$/i.test(url)) throw SysError('Pegá el enlace completo del calendario de Airbnb (empieza con https:// y termina en .ics).', 'datos');
+  var filas = this._tabla(H_TAR, ENC_TAR.length), f = filas.filter(function (x) { return entero(x[0]) === id && txt(x[0]) !== ''; })[0];
+  if (f) A.escribir(H_TAR, f._fila, 5, [[url]]); else A.agregar(H_TAR, [[id, c.nombre, c.capacidad, c.precio, url]]);
+  return { ok: true, cabin: id, url: url };
+};
+function parseICS(texto) {
+  var t = String(texto || '').replace(/\r\n?/g, '\n').replace(/\n[ \t]/g, ''), out = [];
+  t.split('BEGIN:VEVENT').slice(1).forEach(function (bloque) {
+    var ev = { uid: '', summary: '', description: '', from: '', to: '' };
+    bloque.split('END:VEVENT')[0].split('\n').forEach(function (linea) {
+      var i = linea.indexOf(':'); if (i < 0) return;
+      var k = linea.slice(0, i).split(';')[0].toUpperCase(), v = linea.slice(i + 1).replace(/\\n/g, '\n').replace(/\\,/g, ',').trim();
+      var fecha = function (x) { var m = x.match(/(\d{4})(\d{2})(\d{2})/); return m ? m[1] + '-' + m[2] + '-' + m[3] : ''; };
+      if (k === 'UID') ev.uid = v; else if (k === 'SUMMARY') ev.summary = v; else if (k === 'DESCRIPTION') ev.description = v;
+      else if (k === 'DTSTART') ev.from = fecha(v); else if (k === 'DTEND') ev.to = fecha(v);
+    });
+    if (ev.from && ev.to) out.push(ev);
+  });
+  return out;
+}
+Sistema.prototype.sincronizarAirbnb = function () {
+  var self = this, d = this.leer(), hoy = ahoraISO().slice(0, 10);
+  var res = { fecha: ahoraISO(), cabanas: 0, eventos: 0, nuevas: [], actualizadas: [], canceladas: [], conflictos: [], errores: [], bloqueos: 0 };
+  Object.keys(d.airbnb).forEach(function (k) {
+    var url = d.airbnb[k], cab = entero(k); if (!url) return;
+    res.cabanas++;
+    var eventos;
+    try { eventos = parseICS(fetchTexto(url)); } catch (e) { res.errores.push({ cabin: cab, error: 'No pude leer el calendario de Airbnb de ' + nombreCab(cab) + ': ' + e.message }); return; }
+    var vistos = {};
+    eventos.forEach(function (ev) {
+      if (!ev.from || !ev.to || ev.to <= ev.from || ev.to < hoy) return;
+      if (/not available|no disponible|blocked|bloqueado/i.test(ev.summary)) { res.bloqueos++; return; }
+      res.eventos++;
+      var codigo = (ev.description.match(/reservations\/details\/([A-Z0-9]+)/i) || [])[1] || '';
+      var clave = 'airbnb:' + (codigo || ev.uid || (cab + ':' + ev.from));
+      var tel4 = (ev.description.match(/\(Last 4 Digits\):\s*(\d{4})/i) || ev.description.match(/(\d{4})\s*$/) || [])[1] || '';
+      vistos[clave] = true;
+      var ya = d.reservas.filter(function (o) { return o.clave === clave; })[0];
+      if (ya) {
+        if (ya.from !== ev.from || ya.to !== ev.to || ya.cabin !== cab || ya.estado === 'cancelada') {
+          try {
+            self.actualizarReserva(ya.id, { from: ev.from, to: ev.to, cabin: cab, estado: ya.estado === 'cancelada' ? 'pagada' : undefined });
+            res.actualizadas.push(ya.id); d = self.leer();
+          } catch (e) { res.conflictos.push({ cabin: cab, from: ev.from, to: ev.to, codigo: codigo, error: e.message }); }
+        }
+        return;
+      }
+      try {
+        var r = { cabin: cab, huesped: 'Huésped de Airbnb' + (codigo ? ' · ' + codigo : ''), tel: tel4 ? 'termina en ' + tel4 : '', personas: 0, from: ev.from, to: ev.to, origen: 'Airbnb', estado: 'pagada', total: 0,
+          nota: 'Reserva de Airbnb' + (codigo ? ' ' + codigo : '') + ' · se cobra a través de Airbnb. Podés completar nombre, personas y total.' };
+        var o = self.crearReserva({ clave: clave, reserva: r });
+        res.nuevas.push(o.reserva.id); d = self.leer();
+      } catch (e) { res.conflictos.push({ cabin: cab, from: ev.from, to: ev.to, codigo: codigo, error: e.message }); }
+    });
+    d.reservas.filter(function (o) { return o.cabin === cab && String(o.clave).indexOf('airbnb:') === 0 && !vistos[o.clave] && o.estado !== 'cancelada' && o.to >= hoy; }).forEach(function (o) {
+      try { self.actualizarReserva(o.id, { estado: 'cancelada', nota: (o.nota ? o.nota + ' · ' : '') + 'Cancelada en Airbnb' }); res.canceladas.push(o.id); d = self.leer(); }
+      catch (e) { res.errores.push({ cabin: cab, error: e.message }); }
+    });
+  });
+  propiedad('AIRBNB_ULTIMA', res.fecha);
+  propiedad('AIRBNB_RESUMEN', JSON.stringify(res));
+  return res;
+};
+// Al leer datos, si hay calendarios de Airbnb configurados y pasaron más de 20 minutos, sincroniza solo.
+Sistema.prototype.sincronizarAirbnbSiCorresponde = function () {
+  var d = this.leer(); if (!Object.keys(d.airbnb).length) return null;
+  var ultima = propiedad('AIRBNB_ULTIMA');
+  if (ultima && (Date.now() - Date.parse(ultima)) < 20 * 60 * 1000) return null;
+  try { return this.sincronizarAirbnb(); } catch (e) { propiedad('AIRBNB_ULTIMA', ahoraISO()); propiedad('AIRBNB_RESUMEN', JSON.stringify({ fecha: ahoraISO(), errores: [{ error: e.message }] })); return null; }
+};
+function nombreCab(id) { var c = CABANAS.filter(function (k) { return k.id === id; })[0]; return c ? c.nombre : 'Cabaña ' + id; }
 
 /* ---------- hojas mensuales ---------- */
 Sistema.prototype._titulosMes = function () {
@@ -416,7 +504,7 @@ Sistema.prototype.ejecutar = function (accion, b) {
   var res;
   switch (accion) {
     case 'ping': this.asegurar(); return { ok: true, hoja: { id: this.A.id(), titulo: this.A.titulo() }, version: VERSION };
-    case 'datos': this.asegurar(); return { ok: true, datos: this.publico(this.leer()) };
+    case 'datos': this.asegurar(); this.sincronizarAirbnbSiCorresponde(); return { ok: true, datos: this.publico(this.leer()) };
     case 'crearReserva': res = this.crearReserva(b); break;
     case 'actualizarReserva': res = this.actualizarReserva(txt(b.id), b.cambios || {}); break;
     case 'cancelarReserva': res = this.cancelarReserva(txt(b.id)); break;
@@ -424,7 +512,9 @@ Sistema.prototype.ejecutar = function (accion, b) {
     case 'registrarPago': res = this.registrarPago(b); break;
     case 'anularPago': res = this.anularPago(txt(b.id)); break;
     case 'registrarRecibo': res = this.registrarRecibo(b); break;
-    case 'guardarTarifa': res = this.guardarTarifa(b.cabin, b.precio); break;
+    case 'guardarTarifa': res = this.guardarTarifa(b.cabin, b.precio, b.capacidad); break;
+    case 'guardarAirbnb': res = this.guardarAirbnb(b.cabin, b.url); break;
+    case 'sincronizarAirbnb': res = this.sincronizarAirbnb(); break;
     case 'importar': res = this.importar(b.desde); break;
     case 'reconstruir': res = this.reconstruir(); break;
     default: throw SysError('Acción desconocida: ' + accion, 'accion');
@@ -487,6 +577,37 @@ function adaptadorSheets(ss) {
       return s;
     }
   };
+}
+
+// Descarga texto (el calendario .ics de Airbnb). Requiere el permiso "external_request" del manifiesto.
+function fetchTexto(url) {
+  var r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+  var code = r.getResponseCode();
+  if (code !== 200) throw new Error('Airbnb respondió ' + code + '. Revisá que el enlace sea el de "Exportar calendario".');
+  return r.getContentText();
+}
+// Propiedades del script (última sincronización de Airbnb, etc.). Si no hay PropertiesService (pruebas), usa memoria.
+var _props = {};
+function propiedad(k, v) {
+  try {
+    var p = PropertiesService.getScriptProperties();
+    if (v === undefined) return p.getProperty(k) || '';
+    p.setProperty(k, String(v)); return v;
+  } catch (e) {
+    if (v === undefined) return _props[k] || '';
+    _props[k] = String(v); return v;
+  }
+}
+// Opcional: ejecutá esta función una vez desde el editor para que Airbnb se sincronice cada hora aunque nadie abra el sistema.
+function instalarSincronizacionAirbnb() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'sincronizarAirbnbAutomatico') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('sincronizarAirbnbAutomatico').timeBased().everyHours(1).create();
+  Logger.log('Listo: Airbnb se sincroniza cada hora.');
+}
+function sincronizarAirbnbAutomatico() {
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(25000); var sistema = new Sistema(adaptadorSheets(abrirPlanilla(''))); sistema.asegurar(); Logger.log(JSON.stringify(sistema.sincronizarAirbnb())); SpreadsheetApp.flush(); }
+  finally { try { lock.releaseLock(); } catch (e) {} }
 }
 
 function abrirPlanilla(id) {

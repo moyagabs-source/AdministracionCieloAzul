@@ -33,7 +33,7 @@ La planilla actual se conserva tal cual. El sistema agrega cuatro pestañas al f
 - **BD_RESERVAS**: una fila por reserva, con ID único `RES-000001`. Es el registro principal.
 - **BD_PAGOS**: cada seña o pago (`PAG-000001`). El "Pagado" y el "Saldo" de la reserva salen de acá.
 - **BD_RECIBOS**: cada recibo emitido (`REC-000001`).
-- **BD_TARIFAS**: precio por noche de cada cabaña.
+- **BD_TARIFAS**: precio por noche, capacidad máxima (personas) y enlace del calendario de Airbnb de cada cabaña.
 
 La primera vez, todas las reservas que ya están escritas en las hojas mensuales (AGOSTO 2026 … DICIEMBRE 2030) se copian a BD_RESERVAS. No se borra ni se reemplaza nada.
 
@@ -53,11 +53,30 @@ Antes de cada cambio, el sistema incorpora lo que se haya escrito a mano en esa 
 - eliminar una reserva;
 - registrar o anular un pago;
 - emitir un recibo;
-- cambiar una tarifa;
+- cambiar una tarifa o la capacidad de una cabaña;
+- vincular o desvincular el calendario de Airbnb de una cabaña, y cada sincronización con Airbnb;
 - "Actualizar con los datos más recientes";
 - "Reescribir hojas mensuales".
 
 Si Google no responde, el sistema muestra **Error al sincronizar** con un botón **Reintentar**, y no informa que se guardó. Cada envío lleva una clave única, así que reintentar o hacer doble clic no duplica registros.
+
+## Capacidad de las cabañas
+
+Cada cabaña tiene una capacidad de fábrica (Luna 2–3, Marte 9–10, etc.). Desde la tarjeta de la cabaña, el botón **Tarifa y capacidad** permite cambiar el precio por noche y la cantidad máxima de personas. El valor queda en BD_TARIFAS y lo usa todo el sistema: el buscador de disponibilidad, el asistente de nueva reserva y los avisos de "esta cabaña es para hasta N personas". Si se vuelve al número de fábrica, se muestra otra vez el texto original (por ejemplo "2–3 pers.").
+
+## Airbnb
+
+Airbnb no permite conectar la cuenta de un anfitrión a otros sistemas, pero cada anuncio exporta un **calendario (.ics)** con sus reservas. En la sección **Excel vinculado › Airbnb** se pega el enlace del calendario de cada cabaña (en Airbnb: Calendario › anuncio › Disponibilidad › Conectar calendarios › Exportar calendario).
+
+Qué hace el sistema con ese enlace:
+
+- Cada reserva del calendario se anota como reserva del sistema con origen **Airbnb**, estado **Pagada** (se cobra a través de Airbnb) y la clave `airbnb:<código de reserva>`, así nunca se duplica. Airbnb no incluye el nombre del huésped: se carga "Huésped de Airbnb · HMXXXX" y los últimos 4 dígitos del teléfono; nombre, personas y total se completan desde la ficha y no se pisan en las próximas sincronizaciones.
+- Si la reserva cambia de fechas en Airbnb, se mueve; si desaparece del calendario (cancelación), se marca como cancelada y libera las noches; si vuelve a aparecer, se reactiva.
+- Los bloqueos de fechas ("Airbnb (Not available)") no se importan.
+- Si en esas fechas ya había una reserva anotada a mano, no la pisa: lo informa como conflicto en el panel.
+- La sincronización corre sola cada 20 minutos mientras alguien usa el sistema, y con el botón **Sincronizar Airbnb ahora**. Para que corra cada hora aunque nadie abra el sistema, ejecutá una vez la función `instalarSincronizacionAirbnb` desde el editor de Apps Script.
+
+Al actualizar `Codigo.gs` con esta función hay que volver a ejecutar `configurarPorPrimeraVez` desde el editor y aceptar el permiso nuevo ("Conectarse a un servicio externo"), y luego publicar una **Nueva versión**. Si en su momento pegaste `appsscript.json` en el editor, reemplazalo por el nuevo (agrega los permisos `script.external_request` y `script.scriptapp`); si nunca lo pegaste, Apps Script los pide solo.
 
 ## Paso 1 · Publicar el Apps Script (una sola vez)
 

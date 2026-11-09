@@ -186,6 +186,23 @@
         <p class="muted" style="margin:0;font-size:14px">Si cambiás el enlace por otra planilla, la cuenta que publicó el Apps Script tiene que tener permiso de edición en esa hoja. La contraseña de acceso se define en el Apps Script (ver README). Estos datos se guardan solo en este navegador.</p>
       </form>
     </div>
+    <div class="panel ab" id="ab-panel">
+      <div class="ab-head"><h2 class="ht" data-ic="calendar" data-ic-size="22" style="margin:0">Airbnb</h2><span id="ab-estado" class="pill s-sinpago">Sin vincular</span></div>
+      <p class="muted" style="margin:0">Airbnb no permite conectar la cuenta directamente a otros sistemas, pero cada anuncio tiene un <b>calendario que se puede exportar</b>. Pegá acá el enlace del calendario de cada cabaña y sus reservas aparecen solas en este sistema: se revisan cada 20 minutos mientras alguien usa el sistema y cuando tocás <b>Sincronizar ahora</b>. Si una reserva cambia de fechas o se cancela en Airbnb, acá también.</p>
+      <details class="ayuda">
+        <summary>¿Dónde está el enlace en Airbnb?</summary>
+        <ol>
+          <li>Entrá a Airbnb como anfitrión y abrí <b>Calendario</b>.</li>
+          <li>Elegí el anuncio de la cabaña y tocá <b>Disponibilidad</b> (en la app: el ícono de ajustes del calendario).</li>
+          <li>Bajá hasta <b>Conectar calendarios</b> › <b>Exportar calendario</b>.</li>
+          <li>Copiá el enlace (empieza con <code>https://www.airbnb.com/calendar/ical/…</code> y termina en <code>.ics?s=…</code>) y pegalo en la cabaña que corresponde.</li>
+        </ol>
+        <p class="muted" style="margin:6px 0 0;font-size:13px">Airbnb no incluye el nombre del huésped en el calendario, solo el código de la reserva y los últimos 4 dígitos del teléfono. La reserva entra como <b>Pagada</b> (se cobra por Airbnb) y vos podés completar nombre, personas y total desde su ficha.</p>
+      </details>
+      <div id="ab-lista" class="ab-lista"></div>
+      <div class="acts"><button class="btn pri" type="button" id="b-airbnb" data-ic="refresh">Sincronizar Airbnb ahora</button></div>
+      <div id="ab-resumen" class="ab-resumen" hidden></div>
+    </div>
   </section>
 </main>
 
@@ -330,10 +347,12 @@
     <div class="dlg-h"><h2 id="dlgp-t">Tarifa</h2><button type="button" class="x" id="dlgp-x" aria-label="Cerrar">×</button></div>
     <div class="dlg-b">
       <div class="field"><label for="p-val">Precio por noche ($)</label><input id="p-val" type="number" min="0" step="1000" inputmode="numeric" required></div>
-      <p class="muted" style="margin:0;font-size:14px">Se usa para calcular el total sugerido de las reservas nuevas. Las reservas ya anotadas no cambian.</p>
+      <p class="muted" style="margin:-6px 0 0;font-size:14px">Se usa para calcular el total sugerido de las reservas nuevas. Las reservas ya anotadas no cambian.</p>
+      <div class="field"><label for="p-cap">Capacidad máxima (personas)</label><input id="p-cap" type="number" min="1" max="60" step="1" inputmode="numeric" required></div>
+      <p class="muted" id="p-cap-h" style="margin:-6px 0 0;font-size:14px"></p>
     </div>
     <div class="sync-inline" role="status" aria-live="polite" hidden><span class="si-t"></span><button type="button" class="btn sm si-r" hidden>Reintentar</button></div>
-    <div class="dlg-f"><button type="button" class="btn" id="dlgp-c">Cancelar</button><button type="submit" class="btn pri">Guardar tarifa</button></div>
+    <div class="dlg-f"><button type="button" class="btn" id="dlgp-c">Cancelar</button><button type="submit" class="btn pri">Guardar</button></div>
   </form>
 </dialog>
 

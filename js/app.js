@@ -158,7 +158,7 @@ var MC = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic
 var DIA = ['D','L','M','M','J','V','S'];
 var DIAL = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 
-var S = { pagos: [], hoja: null, conexion: 'cargando', errorConexion: '', ultimaSync: null, ocupado: false, curClave: null, res: [], precios: {}, edit: false, loaded: false,
+var S = { pagos: [], hoja: null, conexion: 'cargando', errorConexion: '', ultimaSync: null, ocupado: false, curClave: null, res: [], precios: {}, caps: {}, airbnb: { urls: {}, ultima: '', resumen: null }, edit: false, loaded: false,
   view: 'hoy', cal: null, filtro: 'proximas', q: '', cur: null, curSt: 'porconfirmar' };
 
 function $(id){ return document.getElementById(id); }
@@ -172,6 +172,16 @@ function corto(s){ var p = s.split('-'); return parseInt(p[2], 10) + ' ' + MC[pa
 function plata(n){ return '$' + (Number(n) || 0).toLocaleString('es-AR'); }
 function cabN(id){ var c = CAB.filter(function(x){ return x.id === id; })[0]; return c ? (c.n ? 'Cabaña ' + c.id + ' · ' + c.n : 'Cabaña 0') : 'Cabaña ' + id; }
 function precio(id){ var v = S.precios[id]; if (typeof v === 'number') return v; var c = CAB.filter(function(x){ return x.id === id; })[0]; return c ? c.p : 0; }
+/* La capacidad máxima de cada cabaña se puede cambiar desde el sistema (queda en BD_TARIFAS).
+   Si la planilla trae un valor distinto al de fábrica, se usa ese en todo el sistema: cupos, disponibilidad y textos. */
+function aplicarCapacidades(){
+  CAB.forEach(function(c){
+    if (c.max0 == null) { c.max0 = c.max; c.cap0 = c.cap; }
+    var n = S.caps[c.id];
+    if (n >= 1 && n !== c.max0) { c.max = n; c.cap = String(n); } else { c.max = c.max0; c.cap = c.cap0; }
+  });
+}
+function capacidad(id){ return cabC(id).max; }
 function cabC(id){ return CAB.filter(function(x){ return x.id === id; })[0] || {id:id,n:'',cap:'?',max:99,p:0,col:'#4D5E72',tint:'#E8EEF5',fg:'#FFFFFF'}; }
 function noches(r){ return dn(r.to) - dn(r.from); }
 function activas(){ return S.res.filter(function(r){ return r.estado !== 'cancelada'; }); }
@@ -233,6 +243,9 @@ function aplicar(d){
   S.pagos = d.pagos || [];
   S.recibos = d.recibos || [];
   S.precios = {}; for (var k in (d.tarifas || {})) S.precios[+k] = +d.tarifas[k];
+  S.caps = {}; for (var k2 in (d.capacidades || {})) S.caps[+k2] = +d.capacidades[k2];
+  aplicarCapacidades();
+  S.airbnb = d.airbnb && d.airbnb.urls ? d.airbnb : { urls: {}, ultima: '', resumen: null };
   S.hoja = d.hoja || null;
   S.ultimaSync = d.leido || new Date().toISOString();
   S.loaded = true;
@@ -346,6 +359,18 @@ function initConexion(){
   });
   $('b-drive').addEventListener('click', async function(){
     try { var r = await escribir('importar', {}, null); toast(r.agregadas ? 'Se agregaron ' + r.agregadas + ' reservas escritas a mano en la planilla.' : 'Todo al día: los datos vienen de la planilla.'); } catch (e) {}
+  });
+  $('b-airbnb').addEventListener('click', async function(){
+    try { var r = await escribir('sincronizarAirbnb', {}, null); toast(resumenAirbnb(r, true)); } catch (e) {}
+  });
+  $('ab-lista').addEventListener('click', async function(ev){
+    var b = ev.target.closest('[data-abguardar]'); if (!b) return;
+    var id = +b.getAttribute('data-abguardar'), inp = document.querySelector('[data-ab="' + id + '"]'), url = inp.value.trim();
+    if (url && !/^https?:\/\/\S+$/i.test(url)) { toast('Pegá el enlace completo del calendario de Airbnb (empieza con https://).'); inp.focus(); return; }
+    try {
+      await escribir('guardarAirbnb', { cabin: id, url: url }, url ? cabN(id) + ' vinculada a Airbnb. Sincronizando…' : cabN(id) + ' desvinculada de Airbnb.');
+      if (url) { var r = await escribir('sincronizarAirbnb', {}, null); toast(resumenAirbnb(r, true)); }
+    } catch (e) {}
   });
   $('b-reconstruir').addEventListener('click', async function(){
     try { var r = await escribir('reconstruir', {}, null); toast('Hojas mensuales reescritas: ' + ((r.meses || []).length) + ' meses.' + ((r.faltan || []).length ? ' Faltan pestañas para: ' + r.faltan.join(', ') : '')); } catch (e) {}
@@ -467,7 +492,7 @@ function renderHoy(){
       '<div class="now">' + now + '</div>' +
       '<div><div class="strip">' + strip + '</div><div class="strip-l"><span>hoy</span><span>14 días</span></div></div>' +
       '<div class="tarifa"><span class="muted">' + ic('cash', 16) + (precio(c.id) ? 'Tarifa por noche: <b class="num">' + plata(precio(c.id)) + '</b>' : '<em>Sin tarifa cargada</em>') + '</span></div>' +
-      (S.edit ? '<div class="cab-a"><button class="btn pri" type="button" data-newcab="' + c.id + '">' + ic('plus', 16) + 'Anotar reserva</button><button type="button" class="btn" data-precio="' + c.id + '" aria-label="' + (precio(c.id) ? 'Cambiar' : 'Cargar') + ' tarifa de ' + esc(cabN(c.id)) + '">' + ic('tag', 16) + (precio(c.id) ? 'Cambiar tarifa' : 'Cargar tarifa') + '</button></div>' : '') +
+      (S.edit ? '<div class="cab-a"><button class="btn pri" type="button" data-newcab="' + c.id + '">' + ic('plus', 16) + 'Anotar reserva</button><button type="button" class="btn" data-precio="' + c.id + '" aria-label="Tarifa y capacidad de ' + esc(cabN(c.id)) + '">' + ic('tag', 16) + (precio(c.id) ? 'Tarifa y capacidad' : 'Cargar tarifa') + '</button></div>' : '') +
       '</div></article>';
   }).join('');
   $('cabins').innerHTML = S.loaded ? html : '<div class="empty">Cargando cabañas…</div>';
@@ -489,7 +514,7 @@ function kpi(v, l, go, alert, icono){ return '<button type="button" class="kpi' 
 
 function fila(r){
   var p = r.from.split('-');
-  var flag = r.fuente === 'app' ? '<span class="flag">Falta en Excel</span>' : r.editadaApp ? '<span class="flag">Editada aquí</span>' : '';
+  var flag = (r.origen === 'Airbnb' ? '<span class="flag airbnb">Airbnb</span>' : '') + (r.fuente === 'app' ? '<span class="flag">Falta en Excel</span>' : r.editadaApp ? '<span class="flag">Editada aquí</span>' : '');
   return '<button type="button" class="row" data-id="' + esc(r.id) + '">' +
     '<span class="date" style="box-shadow:inset 0 -5px 0 ' + cabC(r.cabin).col + '"><b>' + parseInt(p[2], 10) + '</b><span>' + MC[parseInt(p[1], 10) - 1] + '</span></span>' +
     '<span class="who"><strong>' + esc(r.huesped) + '</strong><span class="cabl">' + chipCab(r.cabin) + esc(cabN(r.cabin)) + ' · ' + noches(r) + ' noche' + (noches(r) === 1 ? '' : 's') + ' · sale ' + corto(r.to) + (r.personas ? ' · ' + r.personas + ' pers.' : '') + '</span>' +
@@ -589,7 +614,43 @@ function renderExcel(){
   $('cf-sync').textContent = S.ultimaSync ? new Date(S.ultimaSync).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Nunca';
   $('cf-reservas').textContent = S.loaded ? S.res.length + ' reservas · ' + (S.pagos || []).length + ' pagos · ' + (S.recibos || []).length + ' recibos' : '—';
   $('cf-error').hidden = !S.errorConexion; $('cf-error').textContent = S.errorConexion || '';
-  ['b-drive', 'b-reconstruir'].forEach(function(id){ $(id).disabled = !S.edit; });
+  ['b-drive', 'b-reconstruir', 'b-airbnb'].forEach(function(id){ $(id).disabled = !S.edit; });
+  renderAirbnb();
+}
+function resumenAirbnb(r, corto){
+  if (!r || typeof r !== 'object') return 'Sin información de la última sincronización.';
+  var n = (r.nuevas || []).length, a = (r.actualizadas || []).length, cn = (r.canceladas || []).length, cf = (r.conflictos || []).length, er = (r.errores || []).length;
+  var partes = [];
+  partes.push(n ? n + (n === 1 ? ' reserva nueva' : ' reservas nuevas') : 'sin reservas nuevas');
+  if (a) partes.push(a + (a === 1 ? ' con fechas cambiadas' : ' con fechas cambiadas'));
+  if (cn) partes.push(cn + (cn === 1 ? ' cancelada' : ' canceladas'));
+  if (cf) partes.push(cf + (cf === 1 ? ' conflicto' : ' conflictos'));
+  if (er) partes.push(er + (er === 1 ? ' error' : ' errores'));
+  var t = 'Airbnb: ' + partes.join(', ') + (r.cabanas ? ' · ' + r.cabanas + (r.cabanas === 1 ? ' cabaña revisada' : ' cabañas revisadas') : '') + '.';
+  return t;
+}
+function renderAirbnb(){
+  var ab = S.airbnb || { urls: {}, ultima: '', resumen: null }, urls = ab.urls || {}, n = Object.keys(urls).filter(function(k){ return urls[k]; }).length;
+  var est = $('ab-estado');
+  est.textContent = n ? n + (n === 1 ? ' cabaña vinculada' : ' cabañas vinculadas') : 'Sin vincular';
+  est.className = 'pill ' + (n ? 's-libre' : 's-sinpago');
+  var lista = $('ab-lista');
+  if (!lista.contains(document.activeElement)) {
+    lista.innerHTML = CAB.map(function(c){ var u = urls[c.id] || '';
+      return '<div class="ab-row' + (u ? ' on' : '') + '"><label class="ab-cab" for="ab-' + c.id + '">' + chipCab(c.id, esc(c.n || 'Cabaña 0')) + '</label>' +
+        '<input id="ab-' + c.id + '" type="url" inputmode="url" data-ab="' + c.id + '" value="' + esc(u) + '" placeholder="Pegá el enlace del calendario de Airbnb (.ics)"' + (S.edit ? '' : ' disabled') + '>' +
+        '<button type="button" class="btn sm' + (u ? '' : ' pri') + '" data-abguardar="' + c.id + '"' + (S.edit ? '' : ' disabled') + '>' + (u ? 'Guardar cambio' : 'Vincular') + '</button>' +
+        '<span class="ab-st">' + (u ? ic('check', 14) + 'Vinculada · borrá el enlace y guardá para desvincular' : 'Sin vincular') + '</span></div>'; }).join('');
+  }
+  var box = $('ab-resumen'), r = ab.resumen;
+  if (!n && !r) { box.hidden = true; return; }
+  box.hidden = false;
+  var cuando = ab.ultima ? new Date(ab.ultima).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' }) : 'todavía no se sincronizó';
+  var h = '<b>Última sincronización con Airbnb:</b> ' + esc(cuando) + (r ? ' · ' + esc(resumenAirbnb(r)) : '');
+  if (r && (r.conflictos || []).length) h += '<ul>' + r.conflictos.map(function(x){ return '<li><b>' + esc(cabN(x.cabin)) + ' · ' + corto(x.from) + ' → ' + corto(x.to) + (x.codigo ? ' · ' + esc(x.codigo) : '') + ':</b> ' + esc(x.error) + ' Si es la misma reserva que ya anotaste, no hace falta hacer nada.</li>'; }).join('') + '</ul>';
+  if (r && (r.errores || []).length) h += '<ul>' + r.errores.map(function(x){ return '<li>' + esc(x.error) + '</li>'; }).join('') + '</ul>';
+  box.className = 'ab-resumen' + (r && ((r.errores || []).length || (r.conflictos || []).length) ? ' warn' : '');
+  box.innerHTML = h;
 }
 
 /* ---------- Diálogo ---------- */
@@ -619,7 +680,7 @@ function abrir(r, pre){
     var pg = (S.pagos || []).filter(function(p){ return p.reserva === r.id; }).sort(function(a, b){ return a.id < b.id ? -1 : 1; });
     var nn = noches(r), sal = saldo(r), c = cabC(r.cabin);
     $('dlg-sub').hidden = false;
-    $('dlg-sub').innerHTML = '<span class="pill s-' + r.estado + '">' + ST[r.estado] + '</span><span class="muted">' + esc(r.id) + '</span>';
+    $('dlg-sub').innerHTML = '<span class="pill s-' + r.estado + '">' + ST[r.estado] + '</span>' + (r.origen === 'Airbnb' ? '<span class="flag airbnb">Airbnb</span>' : '') + '<span class="muted">' + esc(r.id) + '</span>';
     info.innerHTML =
       '<div class="fi-row"><span class="fi-i">' + ic('home', 20) + '</span><div><span class="fi-l">Cabaña</span><b>' + chipCab(r.cabin) + ' ' + esc(c.n || 'Cabaña 0') + '</b></div>' +
         '<div><span class="fi-l">Personas</span><b>' + (r.personas ? r.personas + (r.personas === 1 ? ' persona' : ' personas') : '<span class="muted">sin cargar</span>') + '</b></div></div>' +
@@ -736,17 +797,21 @@ async function anularPago(idPago){
 /* ---------- Tarifas ---------- */
 var precioCab = null;
 function abrirPrecio(id){
-  precioCab = id; $('dlgp-t').textContent = 'Tarifa · ' + cabN(id);
+  precioCab = id; $('dlgp-t').textContent = 'Tarifa y capacidad · ' + cabN(id);
   $('p-val').value = precio(id) || '';
+  $('p-cap').value = capacidad(id) || '';
+  var c = cabC(id);
+  $('p-cap-h').textContent = (c.max !== c.max0 ? 'De fábrica: ' + c.cap0 + ' personas. Ahora: hasta ' + c.max + '.' : 'Capacidad habitual: ' + c.cap0 + ' personas.') + ' Si la cambiás, el sistema ofrece la cabaña para ese cupo.';
   var d = $('dlgp'); if (d.showModal) d.showModal(); else d.setAttribute('open', '');
   setTimeout(function(){ $('p-val').focus(); $('p-val').select(); }, 50);
 }
 function cerrarPrecio(){ var d = $('dlgp'); if (d.close) d.close(); else d.removeAttribute('open'); }
 $('dlgp-form').addEventListener('submit', async function(e){
   e.preventDefault();
-  var v = parseInt($('p-val').value, 10);
-  if (!(v >= 0)) { toast('Escribí un precio válido.'); return; }
-  try { await escribir('guardarTarifa', { cabin: precioCab, precio: v }, 'Tarifa de ' + cabN(precioCab) + ': ' + plata(v) + ' por noche, guardada en la planilla.'); cerrarPrecio(); }
+  var v = parseInt($('p-val').value, 10), cp = parseInt($('p-cap').value, 10);
+  if (!(v >= 0)) { toast('Escribí un precio válido.'); $('p-val').focus(); return; }
+  if (!(cp >= 1 && cp <= 60)) { toast('Escribí la capacidad: cuántas personas entran como máximo (1 a 60).'); $('p-cap').focus(); return; }
+  try { await escribir('guardarTarifa', { cabin: precioCab, precio: v, capacidad: cp }, cabN(precioCab) + ': ' + plata(v) + ' por noche · hasta ' + cp + (cp === 1 ? ' persona' : ' personas') + '. Guardado en la planilla.'); cerrarPrecio(); }
   catch (er) {}
 });
 $('dlgp-x').addEventListener('click', cerrarPrecio); $('dlgp-c').addEventListener('click', cerrarPrecio);
